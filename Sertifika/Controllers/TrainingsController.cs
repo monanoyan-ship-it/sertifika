@@ -101,6 +101,25 @@ public class TrainingsController : ControllerBase
             return NotFound(new { error = ex.Message });
         }
     }
+
+    [HttpGet("{id}/download-zip")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> DownloadZip(int id)
+    {
+        try
+        {
+            var zipBytes = await _generation.DownloadZipAsync(id);
+            return File(zipBytes, "application/zip", $"certificates_training_{id}.zip");
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }
 
 public class CreateTrainingRequest

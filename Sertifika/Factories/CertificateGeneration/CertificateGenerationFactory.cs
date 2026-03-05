@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using Sertifika.Entities;
 using Sertifika.EntityServices;
@@ -130,6 +131,34 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             Signatures = signatures,
             DynamicValues = dynamicValues
         });
+    }
+
+    public async Task<byte[]> DownloadZipAsync(int trainingId)
+    {
+        var training = await _trainingService.GetByIdWithDetailsAsync(trainingId);
+        if (training == null)
+            throw new ArgumentException("Training not found");
+
+        var certDir = Path.Combine(
+            _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
+            "uploads", "certificates", $"training_{trainingId}");
+
+        if (!Directory.Exists(certDir) || !Directory.GetFiles(certDir, "*.pdf").Any())
+            throw new InvalidOperationException("No certificates generated yet. Run generate first.");
+
+        using var memoryStream = new MemoryStream();
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            foreach (var file in Directory.GetFiles(certDir, "*.pdf"))
+            {
+                var entry = archive.CreateEntry(Path.GetFileName(file), CompressionLevel.Optimal);
+                using var entryStream = entry.Open();
+                using var fileStream = System.IO.File.OpenRead(file);
+                await fileStream.CopyToAsync(entryStream);
+            }
+        }
+
+        return memoryStream.ToArray();
     }
 
     private List<PdfFieldLayout> ParseLayout(string layoutJson)
