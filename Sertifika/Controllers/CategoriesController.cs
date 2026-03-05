@@ -1,11 +1,13 @@
 using Sertifika.Entities;
 using Sertifika.Factories.Categories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Sertifika.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class CategoriesController : ControllerBase
 {
     private readonly ICategoryCrudFactory _crud;
@@ -30,6 +32,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Category>> CreateCategory(Category category)
     {
         var created = await _crud.CreateCategoryAsync(category);
@@ -37,6 +40,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateCategory(int id, Category category)
     {
         if (id != category.Id) return BadRequest();
@@ -45,6 +49,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
         var found = await _crud.DeleteCategoryAsync(id);

@@ -1,11 +1,13 @@
 using Sertifika.Entities;
 using Sertifika.Factories.Certificates;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Sertifika.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class CertificatesController : ControllerBase
 {
     private readonly ICertificateCrudFactory _crud;
@@ -42,6 +44,7 @@ public class CertificatesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<ActionResult<Certificate>> CreateCertificate(Certificate certificate)
     {
         var created = await _crud.CreateCertificateAsync(certificate);
@@ -49,6 +52,7 @@ public class CertificatesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<IActionResult> UpdateCertificate(int id, Certificate certificate)
     {
         if (id != certificate.Id) return BadRequest();
@@ -57,6 +61,7 @@ public class CertificatesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteCertificate(int id)
     {
         var found = await _crud.DeleteCertificateAsync(id);

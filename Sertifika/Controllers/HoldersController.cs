@@ -1,11 +1,13 @@
 using Sertifika.Entities;
 using Sertifika.Factories.Holders;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Sertifika.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class HoldersController : ControllerBase
 {
     private readonly IHolderCrudFactory _crud;
@@ -30,6 +32,7 @@ public class HoldersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<ActionResult<Holder>> CreateHolder(Holder holder)
     {
         var created = await _crud.CreateHolderAsync(holder);
@@ -37,6 +40,7 @@ public class HoldersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<IActionResult> UpdateHolder(int id, Holder holder)
     {
         if (id != holder.Id) return BadRequest();
@@ -45,6 +49,7 @@ public class HoldersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteHolder(int id)
     {
         var found = await _crud.DeleteHolderAsync(id);
