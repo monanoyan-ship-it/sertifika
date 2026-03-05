@@ -16,12 +16,18 @@ public class TrainingsController : ControllerBase
     private readonly ITrainingCrudFactory _crud;
     private readonly ICertificateGenerationFactory _generation;
     private readonly IDistributionFactory _distribution;
+    private readonly IOneDriveService _oneDrive;
 
-    public TrainingsController(ITrainingCrudFactory crud, ICertificateGenerationFactory generation, IDistributionFactory distribution)
+    public TrainingsController(
+        ITrainingCrudFactory crud,
+        ICertificateGenerationFactory generation,
+        IDistributionFactory distribution,
+        IOneDriveService oneDrive)
     {
         _crud = crud;
         _generation = generation;
         _distribution = distribution;
+        _oneDrive = oneDrive;
     }
 
     [HttpGet]
@@ -156,6 +162,25 @@ public class TrainingsController : ControllerBase
         catch (ArgumentException ex)
         {
             return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/archive-onedrive")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<OneDriveUploadResult>> ArchiveToOneDrive(int id)
+    {
+        try
+        {
+            var training = await _crud.GetTrainingAsync(id);
+            if (training == null) return NotFound();
+
+            var result = await _oneDrive.ArchiveTrainingCertificatesAsync(
+                id, training.CompanyName ?? "Genel", training.Name, training.TrainingDate);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
     }
 }

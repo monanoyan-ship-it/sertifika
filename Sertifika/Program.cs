@@ -17,6 +17,9 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 // Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// OneDrive Service
+builder.Services.AddScoped<IOneDriveService, OneDriveService>();
+
 // PDF Service (Python)
 builder.Services.AddHttpClient<IPdfService, PdfService>(client =>
 {
