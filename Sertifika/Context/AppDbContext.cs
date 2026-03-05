@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<Holder> Holders => Set<Holder>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,11 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.Email).IsUnique();
         });
 
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasIndex(e => e.Email).IsUnique();
+        });
+
         // Seed Data
         modelBuilder.Entity<Category>().HasData(
             new Category { Id = 1, Name = "Yazilim", Description = "Yazilim gelistirme sertifikalari" },
@@ -48,6 +54,11 @@ public class AppDbContext : DbContext
             new Holder { Id = 1, FirstName = "Ahmet", LastName = "Yilmaz", Email = "ahmet@example.com", Phone = "5551234567" },
             new Holder { Id = 2, FirstName = "Ayse", LastName = "Demir", Email = "ayse@example.com", Phone = "5559876543" },
             new Holder { Id = 3, FirstName = "Mehmet", LastName = "Kaya", Email = "mehmet@example.com", Phone = "5554567890" }
+        );
+
+        // Admin kullanici - sifre: "admin123" (BCrypt hash)
+        modelBuilder.Entity<User>().HasData(
+            new User { Id = 1, FirstName = "Admin", LastName = "User", Email = "admin@sertifika.com", PasswordHash = "$2b$11$WN/yviAPXEYvPVmfayU28e4cv1s58IAy7XfMQDpfyUDvLjDe6jQeG", Role = UserRole.Admin }
         );
 
         modelBuilder.Entity<Certificate>().HasData(

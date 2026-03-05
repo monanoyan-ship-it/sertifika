@@ -17,6 +17,7 @@ public static class ServiceRegistration
         services.AddScoped<ICertificateEntityService, CertificateEntityService>();
         services.AddScoped<IHolderEntityService, HolderEntityService>();
         services.AddScoped<ICategoryEntityService, CategoryEntityService>();
+        services.AddScoped<IUserEntityService, UserEntityService>();
 
         // Factories
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();
