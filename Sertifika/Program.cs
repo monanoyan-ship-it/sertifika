@@ -14,6 +14,9 @@ builder.Services.AddApplicationServices();
 // JWT Service
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 // PDF Service (Python)
 builder.Services.AddHttpClient<IPdfService, PdfService>(client =>
 {

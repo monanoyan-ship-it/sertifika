@@ -1,6 +1,8 @@
 using Sertifika.Entities;
 using Sertifika.Factories.Trainings;
 using Sertifika.Factories.CertificateGeneration;
+using Sertifika.Factories.Distribution;
+using Sertifika.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +15,13 @@ public class TrainingsController : ControllerBase
 {
     private readonly ITrainingCrudFactory _crud;
     private readonly ICertificateGenerationFactory _generation;
+    private readonly IDistributionFactory _distribution;
 
-    public TrainingsController(ITrainingCrudFactory crud, ICertificateGenerationFactory generation)
+    public TrainingsController(ITrainingCrudFactory crud, ICertificateGenerationFactory generation, IDistributionFactory distribution)
     {
         _crud = crud;
         _generation = generation;
+        _distribution = distribution;
     }
 
     [HttpGet]
@@ -120,6 +124,46 @@ public class TrainingsController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    [HttpPost("{id}/send-certificates")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<ActionResult<EmailBatchResult>> SendCertificates(int id)
+    {
+        try
+        {
+            var result = await _distribution.SendCertificatesToParticipantsAsync(id);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/send-to-contact")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> SendToContact(int id, [FromBody] SendToContactRequest request)
+    {
+        try
+        {
+            await _distribution.SendToContactAsync(id, request.Email, request.Name);
+            return Ok(new { message = "Certificates sent successfully" });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+}
+
+public class SendToContactRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 }
 
 public class CreateTrainingRequest
