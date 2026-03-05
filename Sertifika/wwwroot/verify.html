@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sertifika Dogrulama</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="verify-container">
+        <h1 style="margin-bottom:20px;color:#2c3e50;">Sertifika Dogrulama</h1>
+        <form id="verify-form" style="margin-bottom:20px;">
+            <div class="form-group">
+                <label>Sertifika Numarasi</label>
+                <input type="text" id="cert-number" placeholder="CERT-XXXXXXXX-XXXX-XXXX" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Dogrula</button>
+        </form>
+        <div id="verify-result"></div>
+    </div>
+
+    <script>
+        // Check URL params for auto-verify
+        const params = new URLSearchParams(window.location.search);
+        const certNo = params.get('no');
+        if (certNo) {
+            document.getElementById('cert-number').value = certNo;
+            verifyCert(certNo);
+        }
+
+        document.getElementById('verify-form').addEventListener('submit', e => {
+            e.preventDefault();
+            verifyCert(document.getElementById('cert-number').value);
+        });
+
+        async function verifyCert(number) {
+            const result = document.getElementById('verify-result');
+            result.innerHTML = '<div class="loading">Dogrulaniyor...</div>';
+
+            try {
+                const res = await fetch(`/api/certificates/verify/${encodeURIComponent(number)}`);
+                const data = await res.json();
+
+                if (data.valid) {
+                    result.innerHTML = `
+                        <div class="verify-valid">
+                            <h2 style="margin-bottom:15px;">Sertifika Gecerli</h2>
+                            <table style="margin:0 auto;text-align:left;">
+                                <tr><td style="padding:5px 15px;font-weight:bold;">Sertifika No:</td><td>${data.certificate.certificateNumber}</td></tr>
+                                <tr><td style="padding:5px 15px;font-weight:bold;">Katilimci:</td><td>${data.certificate.holderName}</td></tr>
+                                <tr><td style="padding:5px 15px;font-weight:bold;">Egitim:</td><td>${data.certificate.trainingName}</td></tr>
+                                <tr><td style="padding:5px 15px;font-weight:bold;">Tarih:</td><td>${data.certificate.trainingDate}</td></tr>
+                                <tr><td style="padding:5px 15px;font-weight:bold;">Firma:</td><td>${data.certificate.companyName || '-'}</td></tr>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `<div class="verify-invalid"><h2>Sertifika Bulunamadi</h2><p>${data.message}</p></div>`;
+                }
+            } catch {
+                result.innerHTML = '<div class="verify-invalid"><h2>Baglanti hatasi</h2></div>';
+            }
+        }
+    </script>
+</body>
+</html>
