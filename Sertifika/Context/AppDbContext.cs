@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Holder> Holders => Set<Holder>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<CertificateTemplate> CertificateTemplates => Set<CertificateTemplate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
