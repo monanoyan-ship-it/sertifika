@@ -8,7 +8,9 @@
       "Bash(curl:*)",
       "Bash(pip install:*)",
       "Bash(do curl:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)"
     ]
   }
 }
