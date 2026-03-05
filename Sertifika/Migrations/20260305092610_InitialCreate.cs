@@ -253,11 +253,11 @@ namespace Sertifika.Migrations
                 columns: new[] { "Id", "CreatedAt", "Description", "IsActive", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9311), "Yazilim gelistirme sertifikalari", true, "Yazilim", null },
-                    { 2, new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9814), "Ag ve siber guvenlik sertifikalari", true, "Ag ve Guvenlik", null },
-                    { 3, new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9815), "Veritabani yonetimi sertifikalari", true, "Veritabani", null },
-                    { 4, new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9816), "Bulut bilisim sertifikalari", true, "Bulut Teknolojileri", null },
-                    { 5, new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9817), "Proje yonetimi sertifikalari", true, "Proje Yonetimi", null }
+                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Yazilim gelistirme sertifikalari", true, "Yazilim", null },
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Ag ve siber guvenlik sertifikalari", true, "Ag ve Guvenlik", null },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Veritabani yonetimi sertifikalari", true, "Veritabani", null },
+                    { 4, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Bulut bilisim sertifikalari", true, "Bulut Teknolojileri", null },
+                    { 5, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Proje yonetimi sertifikalari", true, "Proje Yonetimi", null }
                 });
 
             migrationBuilder.InsertData(
@@ -265,26 +265,26 @@ namespace Sertifika.Migrations
                 columns: new[] { "Id", "CreatedAt", "Email", "FirstName", "IdentityNumber", "IsActive", "LastName", "Phone", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4038), "ahmet@example.com", "Ahmet", null, true, "Yilmaz", "5551234567", null },
-                    { 2, new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4583), "ayse@example.com", "Ayse", null, true, "Demir", "5559876543", null },
-                    { 3, new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4584), "mehmet@example.com", "Mehmet", null, true, "Kaya", "5554567890", null }
+                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "ahmet@example.com", "Ahmet", null, true, "Yilmaz", "5551234567", null },
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "ayse@example.com", "Ayse", null, true, "Demir", "5559876543", null },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "mehmet@example.com", "Mehmet", null, true, "Kaya", "5554567890", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "CreatedAt", "Email", "FirstName", "IsActive", "LastName", "PasswordHash", "Role", "UpdatedAt" },
-                values: new object[] { 1, new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4943), "admin@sertifika.com", "Admin", true, "User", "$2b$11$WN/yviAPXEYvPVmfayU28e4cv1s58IAy7XfMQDpfyUDvLjDe6jQeG", 0, null });
+                values: new object[] { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "admin@sertifika.com", "Admin", true, "User", "$2b$11$WN/yviAPXEYvPVmfayU28e4cv1s58IAy7XfMQDpfyUDvLjDe6jQeG", 0, null });
 
             migrationBuilder.InsertData(
                 table: "Certificates",
                 columns: new[] { "Id", "CategoryId", "CertificateNumber", "CreatedAt", "Description", "ExpiryDate", "HolderId", "ImageUrl", "IsActive", "IssueDate", "Title", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, 4, "CERT-2025-001", new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(5764), "AZ-900 sertifikasi", new DateTime(2027, 1, 15, 0, 0, 0, 0, DateTimeKind.Utc), 1, null, true, new DateTime(2025, 1, 15, 0, 0, 0, 0, DateTimeKind.Utc), "Microsoft Azure Fundamentals", null },
-                    { 2, 4, "CERT-2025-002", new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6685), "AWS cozum mimari sertifikasi", new DateTime(2028, 3, 10, 0, 0, 0, 0, DateTimeKind.Utc), 1, null, true, new DateTime(2025, 3, 10, 0, 0, 0, 0, DateTimeKind.Utc), "AWS Solutions Architect", null },
-                    { 3, 2, "CERT-2025-003", new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6689), "Siber guvenlik temel sertifikasi", new DateTime(2028, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc), 2, null, true, new DateTime(2025, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc), "CompTIA Security+", null },
-                    { 4, 3, "CERT-2025-004", new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6691), "Oracle DBA sertifikasi", null, 3, null, true, new DateTime(2025, 2, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Oracle Database Administrator", null },
-                    { 5, 5, "CERT-2025-005", new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6692), "Project Management Professional", new DateTime(2028, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc), 2, null, true, new DateTime(2025, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc), "PMP", null }
+                    { 1, 4, "CERT-2025-001", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "AZ-900 sertifikasi", new DateTime(2027, 1, 15, 0, 0, 0, 0, DateTimeKind.Utc), 1, null, true, new DateTime(2025, 1, 15, 0, 0, 0, 0, DateTimeKind.Utc), "Microsoft Azure Fundamentals", null },
+                    { 2, 4, "CERT-2025-002", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "AWS cozum mimari sertifikasi", new DateTime(2028, 3, 10, 0, 0, 0, 0, DateTimeKind.Utc), 1, null, true, new DateTime(2025, 3, 10, 0, 0, 0, 0, DateTimeKind.Utc), "AWS Solutions Architect", null },
+                    { 3, 2, "CERT-2025-003", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Siber guvenlik temel sertifikasi", new DateTime(2028, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc), 2, null, true, new DateTime(2025, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc), "CompTIA Security+", null },
+                    { 4, 3, "CERT-2025-004", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Oracle DBA sertifikasi", null, 3, null, true, new DateTime(2025, 2, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Oracle Database Administrator", null },
+                    { 5, 5, "CERT-2025-005", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Project Management Professional", new DateTime(2028, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc), 2, null, true, new DateTime(2025, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc), "PMP", null }
                 });
 
             migrationBuilder.CreateIndex(

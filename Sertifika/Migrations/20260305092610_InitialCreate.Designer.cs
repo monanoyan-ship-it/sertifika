@@ -12,7 +12,7 @@ using Sertifika.Context;
 namespace Sertifika.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260305091351_InitialCreate")]
+    [Migration("20260305092610_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -57,7 +57,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9311),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Yazilim gelistirme sertifikalari",
                             IsActive = true,
                             Name = "Yazilim"
@@ -65,7 +65,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9814),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Ag ve siber guvenlik sertifikalari",
                             IsActive = true,
                             Name = "Ag ve Guvenlik"
@@ -73,7 +73,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9815),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Veritabani yonetimi sertifikalari",
                             IsActive = true,
                             Name = "Veritabani"
@@ -81,7 +81,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9816),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Bulut bilisim sertifikalari",
                             IsActive = true,
                             Name = "Bulut Teknolojileri"
@@ -89,7 +89,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 914, DateTimeKind.Utc).AddTicks(9817),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Proje yonetimi sertifikalari",
                             IsActive = true,
                             Name = "Proje Yonetimi"
@@ -157,7 +157,7 @@ namespace Sertifika.Migrations
                             Id = 1,
                             CategoryId = 4,
                             CertificateNumber = "CERT-2025-001",
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(5764),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "AZ-900 sertifikasi",
                             ExpiryDate = new DateTime(2027, 1, 15, 0, 0, 0, 0, DateTimeKind.Utc),
                             HolderId = 1,
@@ -170,7 +170,7 @@ namespace Sertifika.Migrations
                             Id = 2,
                             CategoryId = 4,
                             CertificateNumber = "CERT-2025-002",
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6685),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "AWS cozum mimari sertifikasi",
                             ExpiryDate = new DateTime(2028, 3, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             HolderId = 1,
@@ -183,7 +183,7 @@ namespace Sertifika.Migrations
                             Id = 3,
                             CategoryId = 2,
                             CertificateNumber = "CERT-2025-003",
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6689),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Siber guvenlik temel sertifikasi",
                             ExpiryDate = new DateTime(2028, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             HolderId = 2,
@@ -196,7 +196,7 @@ namespace Sertifika.Migrations
                             Id = 4,
                             CategoryId = 3,
                             CertificateNumber = "CERT-2025-004",
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6691),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Oracle DBA sertifikasi",
                             HolderId = 3,
                             IsActive = true,
@@ -208,7 +208,7 @@ namespace Sertifika.Migrations
                             Id = 5,
                             CategoryId = 5,
                             CertificateNumber = "CERT-2025-005",
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(6692),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Project Management Professional",
                             ExpiryDate = new DateTime(2028, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             HolderId = 2,
@@ -338,7 +338,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4038),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "ahmet@example.com",
                             FirstName = "Ahmet",
                             IsActive = true,
@@ -348,7 +348,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4583),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "ayse@example.com",
                             FirstName = "Ayse",
                             IsActive = true,
@@ -358,7 +358,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4584),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "mehmet@example.com",
                             FirstName = "Mehmet",
                             IsActive = true,
@@ -573,7 +573,7 @@ namespace Sertifika.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 3, 5, 9, 13, 50, 915, DateTimeKind.Utc).AddTicks(4943),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@sertifika.com",
                             FirstName = "Admin",
                             IsActive = true,
