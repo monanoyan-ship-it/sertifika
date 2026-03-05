@@ -23,5 +23,8 @@ venv/
 Thumbs.db
 .DS_Store
 
+## Uploads
+**/wwwroot/uploads/
+
 ## Build
 publish/
