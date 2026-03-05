@@ -6,7 +6,9 @@
       "Bash(rm:*)",
       "WebFetch(domain:127.0.0.1)",
       "Bash(curl:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(do curl:*)",
+      "Bash(python:*)"
     ]
   }
 }
