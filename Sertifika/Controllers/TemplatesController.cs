@@ -11,10 +11,12 @@ namespace Sertifika.Controllers;
 public class TemplatesController : ControllerBase
 {
     private readonly ITemplateCrudFactory _crud;
+    private readonly IWebHostEnvironment _env;
 
-    public TemplatesController(ITemplateCrudFactory crud)
+    public TemplatesController(ITemplateCrudFactory crud, IWebHostEnvironment env)
     {
         _crud = crud;
+        _env = env;
     }
 
     [HttpGet]
@@ -55,5 +57,36 @@ public class TemplatesController : ControllerBase
         var found = await _crud.DeleteTemplateAsync(id);
         if (!found) return NotFound();
         return NoContent();
+    }
+
+    [HttpPost("{id}/upload-background")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> UploadBackground(int id, IFormFile file)
+    {
+        var template = await _crud.GetTemplateAsync(id);
+        if (template == null) return NotFound();
+
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Dosya gereklidir." });
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg")
+            return BadRequest(new { message = "Sadece PNG ve JPG dosyalari kabul edilir." });
+
+        var uploadsDir = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads", "backgrounds");
+        Directory.CreateDirectory(uploadsDir);
+
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        template.BackgroundImageUrl = $"/uploads/backgrounds/{fileName}";
+        await _crud.UpdateTemplateAsync(template);
+
+        return Ok(new { backgroundImageUrl = template.BackgroundImageUrl });
     }
 }

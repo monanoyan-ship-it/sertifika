@@ -76,6 +76,15 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
 }
 
+// Uploads klasorlerini olustur
+var uploadsRoot = Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "uploads");
+foreach (var folder in new[] { "signatures", "backgrounds", "certificates" })
+{
+    var folderPath = Path.Combine(uploadsRoot, folder);
+    if (!Directory.Exists(folderPath))
+        Directory.CreateDirectory(folderPath);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -85,6 +94,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
