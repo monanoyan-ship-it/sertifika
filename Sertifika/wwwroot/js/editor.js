@@ -8,6 +8,38 @@ let dragOffsetX = 0;
 let dragOffsetY = 0;
 let fieldIdCounter = 0;
 
+// Event bindings
+document.getElementById('btn-add-static').addEventListener('click', () => addFieldToEditor('static'));
+document.getElementById('btn-add-dynamic').addEventListener('click', () => addFieldToEditor('dynamic'));
+document.getElementById('btn-add-qrcode').addEventListener('click', () => addFieldToEditor('qrcode'));
+document.getElementById('btn-delete-field').addEventListener('click', deleteSelectedField);
+document.getElementById('tpl-orientation').addEventListener('change', updateCanvasOrientation);
+document.getElementById('field-text').addEventListener('input', updateSelectedField);
+document.getElementById('field-key').addEventListener('change', updateSelectedField);
+document.getElementById('field-font').addEventListener('change', updateSelectedField);
+document.getElementById('field-size').addEventListener('change', updateSelectedField);
+document.getElementById('field-color').addEventListener('change', updateSelectedField);
+document.getElementById('field-align').addEventListener('change', updateSelectedField);
+document.getElementById('field-bold').addEventListener('change', updateSelectedField);
+document.getElementById('field-italic').addEventListener('change', updateSelectedField);
+
+// Background image preview
+document.getElementById('tpl-bg-file').addEventListener('change', function () {
+    const file = this.files[0];
+    const bgImg = document.getElementById('editor-bg');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            bgImg.src = e.target.result;
+            bgImg.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        bgImg.classList.add('hidden');
+        bgImg.src = '';
+    }
+});
+
 function addFieldToEditor(type) {
     const field = {
         id: fieldIdCounter++,
@@ -93,18 +125,29 @@ function selectField(id) {
     selectedFieldId = id;
     const field = editorFields.find(f => f.id === id);
     const propsEl = document.getElementById('field-props');
+    const staticProps = document.getElementById('field-static-props');
+    const dynamicProps = document.getElementById('field-dynamic-props');
 
     if (!field) {
-        propsEl.style.display = 'none';
+        propsEl.classList.add('hidden');
         return;
     }
 
-    propsEl.style.display = '';
+    propsEl.classList.remove('hidden');
     document.getElementById('field-type-display').textContent =
         field.fieldType === 'dynamic' ? 'Dinamik Alan' : (field.fieldType === 'qrcode' ? 'QR Kod' : 'Sabit Metin');
 
-    document.getElementById('field-static-props').style.display = field.fieldType === 'static' ? '' : 'none';
-    document.getElementById('field-dynamic-props').style.display = field.fieldType === 'dynamic' ? '' : 'none';
+    if (field.fieldType === 'static') {
+        staticProps.classList.remove('hidden');
+    } else {
+        staticProps.classList.add('hidden');
+    }
+
+    if (field.fieldType === 'dynamic') {
+        dynamicProps.classList.remove('hidden');
+    } else {
+        dynamicProps.classList.add('hidden');
+    }
 
     if (field.fieldType === 'static') {
         document.getElementById('field-text').value = field.staticText;
@@ -145,7 +188,7 @@ function updateSelectedField() {
 function deleteSelectedField() {
     editorFields = editorFields.filter(f => f.id !== selectedFieldId);
     selectedFieldId = null;
-    document.getElementById('field-props').style.display = 'none';
+    document.getElementById('field-props').classList.add('hidden');
     renderEditorFields();
 }
 

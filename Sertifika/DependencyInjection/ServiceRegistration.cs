@@ -10,6 +10,7 @@ using Sertifika.Factories.Trainings;
 using Sertifika.Factories.Companies;
 using Sertifika.Factories.CertificateGeneration;
 using Sertifika.Factories.Distribution;
+using Sertifika.Factories.OneDriveAccounts;
 using Sertifika.Infrastructure;
 
 namespace Sertifika.DependencyInjection;
@@ -31,6 +32,7 @@ public static class ServiceRegistration
         services.AddScoped<ITrainingEntityService, TrainingEntityService>();
         services.AddScoped<IParticipantEntityService, ParticipantEntityService>();
         services.AddScoped<ICompanyEntityService, CompanyEntityService>();
+        services.AddScoped<IOneDriveAccountEntityService, OneDriveAccountEntityService>();
 
         // Factories
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();
@@ -44,6 +46,7 @@ public static class ServiceRegistration
         services.AddScoped<ICompanyCrudFactory, CompanyCrudFactory>();
         services.AddScoped<ICertificateGenerationFactory, CertificateGenerationFactory>();
         services.AddScoped<IDistributionFactory, DistributionFactory>();
+        services.AddScoped<IOneDriveAccountCrudFactory, OneDriveAccountCrudFactory>();
 
         return services;
     }

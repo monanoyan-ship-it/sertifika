@@ -1,33 +1,28 @@
 using System.Net.Http.Headers;
-using System.Text.Json;
 using Azure.Identity;
+using Sertifika.EntityServices;
 
 namespace Sertifika.Services;
 
 public class OneDriveService : IOneDriveService
 {
-    private readonly IConfiguration _configuration;
+    private readonly IOneDriveAccountEntityService _accountService;
     private readonly IWebHostEnvironment _env;
 
-    public OneDriveService(IConfiguration configuration, IWebHostEnvironment env)
+    public OneDriveService(IOneDriveAccountEntityService accountService, IWebHostEnvironment env)
     {
-        _configuration = configuration;
+        _accountService = accountService;
         _env = env;
     }
 
     public async Task<OneDriveUploadResult> ArchiveTrainingCertificatesAsync(
         int trainingId, string companyName, string trainingName, DateTime trainingDate)
     {
-        var config = _configuration.GetSection("OneDrive");
-        var tenantId = config["TenantId"];
-        var clientId = config["ClientId"];
-        var clientSecret = config["ClientSecret"];
-        var driveUserId = config["DriveUserId"];
+        var account = await _accountService.GetDefaultAccountAsync();
+        if (account == null)
+            throw new InvalidOperationException("Varsayilan OneDrive hesabi bulunamadi. Ayarlar sayfasindan bir hesap ekleyip varsayilan olarak isaretleyin.");
 
-        if (string.IsNullOrEmpty(tenantId) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
-            throw new InvalidOperationException("OneDrive configuration is not set");
-
-        var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+        var credential = new ClientSecretCredential(account.TenantId, account.ClientId, account.ClientSecret);
         var token = await credential.GetTokenAsync(
             new Azure.Core.TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
@@ -59,7 +54,7 @@ public class OneDriveService : IOneDriveService
             try
             {
                 var fileName = Path.GetFileName(file);
-                var uploadUrl = $"https://graph.microsoft.com/v1.0/users/{driveUserId}/drive/root:/{folderPath}/{fileName}:/content";
+                var uploadUrl = $"https://graph.microsoft.com/v1.0/users/{account.DriveUserId}/drive/root:/{folderPath}/{fileName}:/content";
 
                 using var fileStream = File.OpenRead(file);
                 using var content = new StreamContent(fileStream);

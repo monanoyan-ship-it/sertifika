@@ -51,6 +51,18 @@ public class ParticipantsController : ControllerBase
         return Ok(new { message = $"{count} katilimci eklendi.", count });
     }
 
+    [HttpPost("import-excel")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> ImportFromExcel(int trainingId, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Dosya bos." });
+
+        using var stream = file.OpenReadStream();
+        var count = await _crud.ImportFromExcelAsync(trainingId, stream);
+        return Ok(new { message = $"{count} katilimci eklendi.", count });
+    }
+
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<IActionResult> UpdateParticipant(int trainingId, int id, [FromBody] Participant participant)

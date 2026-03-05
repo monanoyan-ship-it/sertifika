@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Sertifika.Entities;
 using Sertifika.EntityServices;
 using Sertifika.Infrastructure;
@@ -44,10 +45,51 @@ public class ParticipantCrudFactory : IParticipantCrudFactory
         return rows.Count;
     }
 
+    public async Task<int> ImportFromExcelAsync(int trainingId, Stream excelStream)
+    {
+        using var workbook = new XLWorkbook(excelStream);
+        var ws = workbook.Worksheets.First();
+        var rows = new List<ParticipantImportRow>();
+
+        var firstRow = ws.FirstRowUsed();
+        var lastRow = ws.LastRowUsed();
+        if (firstRow == null || lastRow == null) return 0;
+
+        var startRow = firstRow.RowNumber();
+        // Detect header row
+        var firstCell = ws.Cell(startRow, 1).GetString().Trim().ToLowerInvariant();
+        if (firstCell is "ad" or "name" or "firstname" or "adı" or "isim")
+            startRow++;
+
+        for (var r = startRow; r <= lastRow.RowNumber(); r++)
+        {
+            var firstName = ws.Cell(r, 1).GetString().Trim();
+            var lastName = ws.Cell(r, 2).GetString().Trim();
+            if (string.IsNullOrEmpty(firstName) && string.IsNullOrEmpty(lastName)) continue;
+
+            rows.Add(new ParticipantImportRow
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = ws.Cell(r, 3).GetString().Trim(),
+                CompanyName = ws.Cell(r, 4).GetString().Trim()
+            });
+        }
+
+        return await ImportParticipantsAsync(trainingId, rows);
+    }
+
     public async Task UpdateParticipantAsync(Participant participant)
     {
-        participant.UpdatedAt = DateTime.UtcNow;
-        _participantService.Update(participant);
+        var existing = await _participantService.GetByIdAsync(participant.Id);
+        if (existing == null) return;
+
+        existing.FirstName = participant.FirstName;
+        existing.LastName = participant.LastName;
+        existing.Email = participant.Email;
+        existing.CompanyName = participant.CompanyName;
+        existing.UpdatedAt = DateTime.UtcNow;
+
         await _unitOfWork.SaveChangesAsync();
     }
 

@@ -7,7 +7,8 @@ function toast(message, type = 'info', duration = 4000) {
     const container = document.getElementById('toast-container');
     const el = document.createElement('div');
     el.className = `toast toast-${type}`;
-    el.innerHTML = `<span>${message}</span><button class="toast-close" onclick="this.parentElement.remove()">&times;</button>`;
+    el.innerHTML = `<span>${message}</span><button class="toast-close">&times;</button>`;
+    el.querySelector('.toast-close').addEventListener('click', () => el.remove());
     container.appendChild(el);
     setTimeout(() => { el.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => el.remove(), 300); }, duration);
 }
@@ -20,14 +21,14 @@ function showConfirm(message) {
             <div class="confirm-box">
                 <p>${message}</p>
                 <div class="confirm-actions">
-                    <button class="btn" id="confirm-no">Iptal</button>
-                    <button class="btn btn-primary" id="confirm-yes">Evet</button>
+                    <button class="btn confirm-no">Iptal</button>
+                    <button class="btn btn-primary confirm-yes">Evet</button>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
-        overlay.querySelector('#confirm-yes').addEventListener('click', () => { overlay.remove(); resolve(true); });
-        overlay.querySelector('#confirm-no').addEventListener('click', () => { overlay.remove(); resolve(false); });
+        overlay.querySelector('.confirm-yes').addEventListener('click', () => { overlay.remove(); resolve(true); });
+        overlay.querySelector('.confirm-no').addEventListener('click', () => { overlay.remove(); resolve(false); });
         overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve(false); } });
     });
 }
@@ -38,13 +39,59 @@ document.addEventListener('DOMContentLoaded', () => {
         loadUser();
     }
 
+    // Auth
     document.getElementById('login-form').addEventListener('submit', login);
     document.getElementById('logout-btn').addEventListener('click', logout);
+
+    // Navigation
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', e => {
             e.preventDefault();
             navigateTo(link.dataset.page);
         });
+    });
+
+    // Page buttons
+    document.getElementById('btn-new-template').addEventListener('click', showTemplateForm);
+    document.getElementById('btn-save-template').addEventListener('click', saveTemplate);
+    document.getElementById('btn-back-templates').addEventListener('click', () => navigateTo('templates'));
+    document.getElementById('btn-new-signature').addEventListener('click', showSignatureForm);
+    document.getElementById('btn-new-training').addEventListener('click', showTrainingForm);
+    document.getElementById('btn-new-company').addEventListener('click', showCompanyForm);
+    document.getElementById('btn-new-onedrive').addEventListener('click', showOneDriveAccountForm);
+    document.getElementById('btn-preview-cert').addEventListener('click', previewCertificate);
+    document.getElementById('btn-generate-certs').addEventListener('click', generateCertificates);
+    document.getElementById('btn-download-zip').addEventListener('click', downloadZip);
+    document.getElementById('btn-send-certs').addEventListener('click', sendCertificates);
+    document.getElementById('btn-send-to-contact').addEventListener('click', showSendToContactForm);
+    document.getElementById('btn-archive-onedrive').addEventListener('click', archiveToOneDrive);
+    document.getElementById('btn-back-trainings').addEventListener('click', () => navigateTo('trainings'));
+    document.getElementById('btn-add-participant').addEventListener('click', showParticipantForm);
+    document.getElementById('btn-upload-excel').addEventListener('click', showExcelUpload);
+
+    // Modal
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+        if (e.target === document.getElementById('modal-overlay')) closeModal();
+    });
+    document.getElementById('modal-content').addEventListener('click', e => e.stopPropagation());
+    document.getElementById('btn-modal-close').addEventListener('click', closeModal);
+
+    // Dynamic content event delegation
+    document.getElementById('app').addEventListener('click', e => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+        const id = parseInt(target.dataset.id);
+        switch (target.dataset.action) {
+            case 'edit-template': editTemplate(id); break;
+            case 'delete-template': deleteTemplate(id); break;
+            case 'delete-signature': deleteSignature(id); break;
+            case 'show-training': showTrainingDetail(id); break;
+            case 'edit-participant': editParticipant(id); break;
+            case 'delete-participant': deleteParticipant(id); break;
+            case 'delete-company': deleteCompany(id); break;
+            case 'set-default-onedrive': setDefaultOneDrive(id); break;
+            case 'delete-onedrive': deleteOneDriveAccount(id); break;
+        }
     });
 });
 
@@ -80,16 +127,16 @@ function logout() {
     authToken = null;
     currentUser = null;
     localStorage.removeItem('token');
-    document.getElementById('login-page').style.display = '';
-    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('login-page').classList.remove('hidden');
+    document.getElementById('main-app').classList.add('hidden');
 }
 
 async function loadUser() {
     try {
         currentUser = await apiGet('/auth/me');
         document.getElementById('user-name').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-        document.getElementById('login-page').style.display = 'none';
-        document.getElementById('main-app').style.display = '';
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
         navigateTo('dashboard');
     } catch {
         logout();
@@ -99,16 +146,16 @@ async function loadUser() {
 function showLoginError(msg) {
     const el = document.getElementById('login-error');
     el.textContent = msg;
-    el.style.display = '';
+    el.classList.remove('hidden');
 }
 
 // Navigation
 function navigateTo(page) {
-    document.querySelectorAll('.content-page').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.content-page').forEach(p => p.classList.add('hidden'));
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
     const pageEl = document.getElementById(`page-${page}`);
-    if (pageEl) pageEl.style.display = '';
+    if (pageEl) pageEl.classList.remove('hidden');
 
     const navLink = document.querySelector(`[data-page="${page}"]`);
     if (navLink) navLink.classList.add('active');
@@ -119,6 +166,7 @@ function navigateTo(page) {
         case 'signatures': loadSignatures(); break;
         case 'trainings': loadTrainings(); break;
         case 'companies': loadCompanies(); break;
+        case 'settings': loadSettings(); break;
     }
 }
 
@@ -159,8 +207,8 @@ async function loadTemplates() {
                 <p>${t.description || ''}</p>
                 <p>Yonelim: ${t.orientation === 0 ? 'Yatay' : 'Dikey'}</p>
                 <div class="card-actions">
-                    <button class="btn btn-sm" onclick="editTemplate(${t.id})">Duzenle</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id})">Sil</button>
+                    <button class="btn btn-sm" data-action="edit-template" data-id="${t.id}">Duzenle</button>
+                    <button class="btn btn-danger btn-sm" data-action="delete-template" data-id="${t.id}">Sil</button>
                 </div>
             </div>
         `).join('') || '<p>Henuz sablon yok.</p>';
@@ -175,12 +223,12 @@ function showTemplateForm() {
     document.getElementById('tpl-name').value = '';
     document.getElementById('tpl-desc').value = '';
     document.getElementById('tpl-orientation').value = '0';
-    document.getElementById('editor-bg').style.display = 'none';
+    document.getElementById('editor-bg').classList.add('hidden');
     document.getElementById('editor-title').textContent = 'Yeni Sablon';
     updateCanvasOrientation();
     renderEditorFields();
-    document.querySelectorAll('.content-page').forEach(p => p.style.display = 'none');
-    document.getElementById('page-template-editor').style.display = '';
+    document.querySelectorAll('.content-page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-template-editor').classList.remove('hidden');
 }
 
 async function editTemplate(id) {
@@ -194,7 +242,7 @@ async function editTemplate(id) {
         if (tpl.backgroundImageUrl) {
             const bgImg = document.getElementById('editor-bg');
             bgImg.src = tpl.backgroundImageUrl;
-            bgImg.style.display = '';
+            bgImg.classList.remove('hidden');
         }
 
         editorFields = JSON.parse(tpl.layoutJson || '[]').map((f, i) => ({
@@ -217,8 +265,8 @@ async function editTemplate(id) {
         document.getElementById('editor-title').textContent = `Sablon: ${tpl.name}`;
         updateCanvasOrientation();
         renderEditorFields();
-        document.querySelectorAll('.content-page').forEach(p => p.style.display = 'none');
-        document.getElementById('page-template-editor').style.display = '';
+        document.querySelectorAll('.content-page').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-template-editor').classList.remove('hidden');
     } catch (err) {
         toast('Sablon yuklenemedi: ' + err.message, 'error');
     }
@@ -287,9 +335,9 @@ async function loadSignatures() {
             <div class="card">
                 <h3>${s.name}</h3>
                 <p>${s.title}</p>
-                ${s.imageUrl ? `<img src="${s.imageUrl}" style="max-width:150px;max-height:60px;margin-top:8px;">` : ''}
+                ${s.imageUrl ? `<img src="${s.imageUrl}" class="sig-preview" alt="">` : ''}
                 <div class="card-actions">
-                    <button class="btn btn-danger btn-sm" onclick="deleteSignature(${s.id})">Sil</button>
+                    <button class="btn btn-danger btn-sm" data-action="delete-signature" data-id="${s.id}">Sil</button>
                 </div>
             </div>
         `).join('') || '<p>Henuz imza yok.</p>';
@@ -338,14 +386,14 @@ async function loadTrainings() {
         const statusClasses = { 0: 'status-draft', 1: 'status-ready', 2: 'status-generated', 3: 'status-distributed' };
 
         list.innerHTML = trainings.map(t => `
-            <div class="training-card" onclick="showTrainingDetail(${t.id})" style="cursor:pointer;">
+            <div class="training-card clickable" data-action="show-training" data-id="${t.id}">
                 <div class="training-info">
                     <h3>${t.name}</h3>
                     <p>${t.companyName || ''} - ${new Date(t.trainingDate).toLocaleDateString('tr-TR')}</p>
                 </div>
                 <div class="training-meta">
                     <span class="status-badge ${statusClasses[t.status]}">${statusLabels[t.status]}</span>
-                    <p style="margin-top:5px;font-size:0.85em;color:#7f8c8d;">${t.participants?.length || 0} katilimci</p>
+                    <p class="meta-text">${t.participants?.length || 0} katilimci</p>
                 </div>
             </div>
         `).join('') || '<p>Henuz egitim yok.</p>';
@@ -393,8 +441,8 @@ function showTrainingForm() {
 // Training Detail
 async function showTrainingDetail(id) {
     currentTrainingId = id;
-    document.querySelectorAll('.content-page').forEach(p => p.style.display = 'none');
-    document.getElementById('page-training-detail').style.display = '';
+    document.querySelectorAll('.content-page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-training-detail').classList.remove('hidden');
 
     try {
         const t = await apiGet(`/trainings/${id}`);
@@ -403,7 +451,7 @@ async function showTrainingDetail(id) {
 
         document.getElementById('training-detail-title').textContent = t.name;
         document.getElementById('training-detail-info').innerHTML = `
-            <div class="card" style="margin-bottom:15px;">
+            <div class="card detail-card">
                 <p><strong>Tarih:</strong> ${new Date(t.trainingDate).toLocaleDateString('tr-TR')}</p>
                 <p><strong>Firma:</strong> ${t.companyName || '-'}</p>
                 <p><strong>Sablon:</strong> ${t.template?.name || '-'}</p>
@@ -431,10 +479,11 @@ async function loadParticipants(trainingId) {
                 <td>${p.certificateNumber || '-'}</td>
                 <td>
                     ${p.certificatePdfUrl ? `<a href="${p.certificatePdfUrl}" target="_blank" class="btn btn-sm">PDF</a>` : ''}
-                    <button class="btn btn-danger btn-sm" onclick="deleteParticipant(${p.id})">Sil</button>
+                    <button class="btn btn-sm" data-action="edit-participant" data-id="${p.id}">Duzenle</button>
+                    <button class="btn btn-danger btn-sm" data-action="delete-participant" data-id="${p.id}">Sil</button>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="6" style="text-align:center;">Katilimci yok</td></tr>';
+        `).join('') || '<tr><td colspan="6" class="text-center">Katilimci yok</td></tr>';
     } catch (err) {
         console.error(err);
     }
@@ -471,7 +520,7 @@ function showExcelUpload() {
             <div class="form-group">
                 <label>Excel Dosyasi (.xlsx)</label>
                 <input type="file" id="excel-file" accept=".xlsx,.xls" required>
-                <p style="font-size:0.85em;color:#7f8c8d;margin-top:5px;">Sutunlar: Ad, Soyad, Email, Firma</p>
+                <p class="hint-text">Sutunlar: Ad, Soyad, Email, Firma</p>
             </div>
             <button type="submit" class="btn btn-primary">Yukle</button>
         </form>
@@ -486,6 +535,37 @@ function showExcelUpload() {
     });
 }
 
+async function editParticipant(id) {
+    try {
+        const p = await apiGet(`/trainings/${currentTrainingId}/participants/${id}`);
+        openModal('Katilimci Duzenle', `
+            <form id="edit-participant-form">
+                <div class="form-group"><label>Ad</label><input type="text" id="ep-fname" value="${p.firstName}" required></div>
+                <div class="form-group"><label>Soyad</label><input type="text" id="ep-lname" value="${p.lastName}" required></div>
+                <div class="form-group"><label>E-posta</label><input type="email" id="ep-email" value="${p.email || ''}"></div>
+                <div class="form-group"><label>Firma</label><input type="text" id="ep-company" value="${p.companyName || ''}"></div>
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </form>
+        `);
+        document.getElementById('edit-participant-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const body = {
+                id: p.id,
+                firstName: document.getElementById('ep-fname').value,
+                lastName: document.getElementById('ep-lname').value,
+                email: document.getElementById('ep-email').value,
+                companyName: document.getElementById('ep-company').value,
+                trainingId: currentTrainingId
+            };
+            const res = await apiPut(`/trainings/${currentTrainingId}/participants/${id}`, body);
+            if (res.ok) { closeModal(); toast('Katilimci guncellendi', 'success'); loadParticipants(currentTrainingId); }
+            else toast('Hata: ' + await res.text(), 'error');
+        });
+    } catch (err) {
+        toast('Katilimci yuklenemedi: ' + err.message, 'error');
+    }
+}
+
 async function deleteParticipant(id) {
     if (!await showConfirm('Katilimciyi silmek istiyor musunuz?')) return;
     await apiDelete(`/trainings/${currentTrainingId}/participants/${id}`);
@@ -494,6 +574,15 @@ async function deleteParticipant(id) {
 }
 
 async function generateCertificates() {
+    // Long name check
+    try {
+        const participants = await apiGet(`/trainings/${currentTrainingId}/participants`);
+        const longNames = participants.filter(p => `${p.firstName} ${p.lastName}`.length > 40);
+        if (longNames.length > 0) {
+            toast(`Uyari: ${longNames.length} katilimcinin ad soyadi 40 karakterden uzun. Metin tasmasi olabilir.`, 'warning', 6000);
+        }
+    } catch { /* continue anyway */ }
+
     if (!await showConfirm('Sertifikalar uretilecek. Devam etmek istiyor musunuz?')) return;
     try {
         const res = await apiPost(`/trainings/${currentTrainingId}/generate`);
@@ -540,6 +629,46 @@ async function sendCertificates() {
     }
 }
 
+// Send to Contact
+function showSendToContactForm() {
+    openModal('Kisiye Gonder', `
+        <form id="contact-form">
+            <div class="form-group"><label>Alici Adi</label><input type="text" id="ct-name" required></div>
+            <div class="form-group"><label>E-posta</label><input type="email" id="ct-email" required></div>
+            <p class="hint-text">Tum sertifikalar bu kisiye gonderilecektir.</p>
+            <button type="submit" class="btn btn-primary">Gonder</button>
+        </form>
+    `);
+    document.getElementById('contact-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const body = {
+            name: document.getElementById('ct-name').value,
+            email: document.getElementById('ct-email').value
+        };
+        try {
+            const res = await apiPost(`/trainings/${currentTrainingId}/send-to-contact`, body);
+            if (!res.ok) throw new Error(await res.text());
+            closeModal();
+            toast('Sertifikalar gonderildi', 'success');
+        } catch (err) {
+            toast('Hata: ' + err.message, 'error');
+        }
+    });
+}
+
+// OneDrive Archive
+async function archiveToOneDrive() {
+    if (!await showConfirm('Sertifikalar OneDrive\'a arsivlenecek. Devam?')) return;
+    try {
+        const res = await apiPost(`/trainings/${currentTrainingId}/archive-onedrive`);
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        toast(`Arsivleme: ${result.uploaded}/${result.total} yuklendi. Klasor: ${result.folderPath}`, 'success', 6000);
+    } catch (err) {
+        toast('Hata: ' + err.message, 'error');
+    }
+}
+
 // Companies
 async function loadCompanies() {
     const list = document.getElementById('companies-list');
@@ -554,7 +683,7 @@ async function loadCompanies() {
                 <p>${c.contactPhone || ''}</p>
                 <p>${c.address || ''}</p>
                 <div class="card-actions">
-                    <button class="btn btn-danger btn-sm" onclick="deleteCompany(${c.id})">Sil</button>
+                    <button class="btn btn-danger btn-sm" data-action="delete-company" data-id="${c.id}">Sil</button>
                 </div>
             </div>
         `).join('') || '<p>Henuz firma yok.</p>';
@@ -594,13 +723,82 @@ async function deleteCompany(id) {
     loadCompanies();
 }
 
+// Settings
+async function loadSettings() {
+    await loadOneDriveAccounts();
+}
+
+async function loadOneDriveAccounts() {
+    const list = document.getElementById('onedrive-accounts-list');
+    list.innerHTML = '<div class="loading">Yukleniyor...</div>';
+
+    try {
+        const accounts = await apiGet('/onedrive-accounts');
+        list.innerHTML = accounts.map(a => `
+            <div class="card">
+                <h3>${a.name} ${a.isDefault ? '<span class="status-badge status-ready">Varsayilan</span>' : ''}</h3>
+                <p>Tenant: ${a.tenantId}</p>
+                <p>Client: ${a.clientId}</p>
+                <p>Drive User: ${a.driveUserId}</p>
+                <div class="card-actions">
+                    ${!a.isDefault ? `<button class="btn btn-success btn-sm" data-action="set-default-onedrive" data-id="${a.id}">Varsayilan Yap</button>` : ''}
+                    <button class="btn btn-danger btn-sm" data-action="delete-onedrive" data-id="${a.id}">Sil</button>
+                </div>
+            </div>
+        `).join('') || '<p>Henuz OneDrive hesabi yok.</p>';
+    } catch (err) {
+        list.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+}
+
+function showOneDriveAccountForm() {
+    openModal('Yeni OneDrive Hesabi', `
+        <form id="onedrive-form">
+            <div class="form-group"><label>Hesap Adi</label><input type="text" id="od-name" required></div>
+            <div class="form-group"><label>Tenant ID</label><input type="text" id="od-tenant" required></div>
+            <div class="form-group"><label>Client ID</label><input type="text" id="od-client" required></div>
+            <div class="form-group"><label>Client Secret</label><input type="password" id="od-secret" required></div>
+            <div class="form-group"><label>Drive User ID</label><input type="text" id="od-user" required></div>
+            <div class="form-group"><label><input type="checkbox" id="od-default"> Varsayilan hesap</label></div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+        </form>
+    `);
+    document.getElementById('onedrive-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const body = {
+            name: document.getElementById('od-name').value,
+            tenantId: document.getElementById('od-tenant').value,
+            clientId: document.getElementById('od-client').value,
+            clientSecret: document.getElementById('od-secret').value,
+            driveUserId: document.getElementById('od-user').value,
+            isDefault: document.getElementById('od-default').checked
+        };
+        const res = await apiPost('/onedrive-accounts', body);
+        if (res.ok) { closeModal(); toast('OneDrive hesabi eklendi', 'success'); loadOneDriveAccounts(); }
+        else toast('Hata: ' + await res.text(), 'error');
+    });
+}
+
+async function setDefaultOneDrive(id) {
+    const res = await apiPost(`/onedrive-accounts/${id}/set-default`);
+    if (res.ok) { toast('Varsayilan hesap ayarlandi', 'success'); loadOneDriveAccounts(); }
+    else toast('Hata: ' + await res.text(), 'error');
+}
+
+async function deleteOneDriveAccount(id) {
+    if (!await showConfirm('OneDrive hesabini silmek istiyor musunuz?')) return;
+    await apiDelete(`/onedrive-accounts/${id}`);
+    toast('Hesap silindi', 'success');
+    loadOneDriveAccounts();
+}
+
 // Modal
 function openModal(title, bodyHtml) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-body').innerHTML = bodyHtml;
-    document.getElementById('modal-overlay').style.display = '';
+    document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
 function closeModal() {
-    document.getElementById('modal-overlay').style.display = 'none';
+    document.getElementById('modal-overlay').classList.add('hidden');
 }

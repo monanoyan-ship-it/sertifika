@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<TrainingSignature> TrainingSignatures => Set<TrainingSignature>();
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Company> Companies => Set<Company>();
+    public DbSet<OneDriveAccount> OneDriveAccounts => Set<OneDriveAccount>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
