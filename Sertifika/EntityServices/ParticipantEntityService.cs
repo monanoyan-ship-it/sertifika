@@ -21,6 +21,11 @@ public class ParticipantEntityService : IParticipantEntityService
     public async Task<Participant?> GetByIdAsync(int id)
         => await _context.Participants.FindAsync(id);
 
+    public async Task<Participant?> GetByCertificateNumberAsync(string certificateNumber)
+        => await _context.Participants
+            .Include(p => p.Training)
+            .FirstOrDefaultAsync(p => p.CertificateNumber == certificateNumber && p.IsActive);
+
     public void Add(Participant participant) => _context.Participants.Add(participant);
 
     public void AddRange(IEnumerable<Participant> participants) => _context.Participants.AddRange(participants);
