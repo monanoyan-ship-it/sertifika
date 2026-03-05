@@ -1,5 +1,6 @@
 using Sertifika.Entities;
 using Sertifika.Factories.Trainings;
+using Sertifika.Factories.CertificateGeneration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,12 @@ namespace Sertifika.Controllers;
 public class TrainingsController : ControllerBase
 {
     private readonly ITrainingCrudFactory _crud;
+    private readonly ICertificateGenerationFactory _generation;
 
-    public TrainingsController(ITrainingCrudFactory crud)
+    public TrainingsController(ITrainingCrudFactory crud, ICertificateGenerationFactory generation)
     {
         _crud = crud;
+        _generation = generation;
     }
 
     [HttpGet]
@@ -64,6 +67,39 @@ public class TrainingsController : ControllerBase
         var found = await _crud.DeleteTrainingAsync(id);
         if (!found) return NotFound();
         return NoContent();
+    }
+    [HttpPost("{id}/generate")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<ActionResult<GenerationResult>> GenerateCertificates(int id)
+    {
+        try
+        {
+            var result = await _generation.GenerateCertificatesAsync(id);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/preview")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> PreviewCertificate(int id, [FromQuery] int? participantId = null)
+    {
+        try
+        {
+            var pdfBytes = await _generation.PreviewCertificateAsync(id, participantId);
+            return File(pdfBytes, "application/pdf", "preview.pdf");
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
     }
 }
 

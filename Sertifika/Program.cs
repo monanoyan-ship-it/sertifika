@@ -14,6 +14,13 @@ builder.Services.AddApplicationServices();
 // JWT Service
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// PDF Service (Python)
+builder.Services.AddHttpClient<IPdfService, PdfService>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["PdfService:BaseUrl"]!);
+    client.Timeout = TimeSpan.FromMinutes(5);
+});
+
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

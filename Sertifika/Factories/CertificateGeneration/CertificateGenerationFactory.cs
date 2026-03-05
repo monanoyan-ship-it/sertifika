@@ -1,0 +1,203 @@
+using System.Text.Json;
+using Sertifika.Entities;
+using Sertifika.EntityServices;
+using Sertifika.Infrastructure;
+using Sertifika.Services;
+
+namespace Sertifika.Factories.CertificateGeneration;
+
+public class CertificateGenerationFactory : ICertificateGenerationFactory
+{
+    private readonly ITrainingEntityService _trainingService;
+    private readonly IParticipantEntityService _participantService;
+    private readonly IPdfService _pdfService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IWebHostEnvironment _env;
+
+    public CertificateGenerationFactory(
+        ITrainingEntityService trainingService,
+        IParticipantEntityService participantService,
+        IPdfService pdfService,
+        IUnitOfWork unitOfWork,
+        IWebHostEnvironment env)
+    {
+        _trainingService = trainingService;
+        _participantService = participantService;
+        _pdfService = pdfService;
+        _unitOfWork = unitOfWork;
+        _env = env;
+    }
+
+    public async Task<GenerationResult> GenerateCertificatesAsync(int trainingId)
+    {
+        var training = await _trainingService.GetByIdWithDetailsAsync(trainingId);
+        if (training == null)
+            throw new ArgumentException("Training not found");
+
+        var participants = await _participantService.GetByTrainingIdAsync(trainingId);
+        var participantList = participants.ToList();
+
+        if (participantList.Count == 0)
+            throw new InvalidOperationException("No participants found for this training");
+
+        var template = training.Template;
+        var layout = ParseLayout(template.LayoutJson);
+        var signatures = BuildSignatureList(training);
+
+        var outputDir = Path.Combine(
+            _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
+            "uploads", "certificates", $"training_{trainingId}");
+        Directory.CreateDirectory(outputDir);
+
+        var result = new GenerationResult { Total = participantList.Count };
+
+        foreach (var participant in participantList)
+        {
+            try
+            {
+                var certNumber = participant.CertificateNumber ?? GenerateCertificateNumber(training, participant);
+                var dynamicValues = BuildDynamicValues(training, participant, certNumber);
+                var filename = BuildFilename(training, participant);
+
+                var pdfBytes = await _pdfService.GenerateSingleAsync(new PdfGenerateRequest
+                {
+                    Orientation = template.Orientation == PageOrientation.Landscape ? "landscape" : "portrait",
+                    BackgroundImagePath = ResolveFilePath(template.BackgroundImageUrl),
+                    Layout = layout,
+                    Signatures = signatures,
+                    DynamicValues = dynamicValues,
+                    OutputFilename = filename
+                });
+
+                var filePath = Path.Combine(outputDir, filename);
+                await File.WriteAllBytesAsync(filePath, pdfBytes);
+
+                participant.CertificateNumber = certNumber;
+                participant.CertificatePdfUrl = $"/uploads/certificates/training_{trainingId}/{filename}";
+                result.Success++;
+            }
+            catch (Exception ex)
+            {
+                result.Failed++;
+                result.Errors.Add($"{participant.FirstName} {participant.LastName}: {ex.Message}");
+            }
+        }
+
+        training.Status = TrainingStatus.Generated;
+        training.UpdatedAt = DateTime.UtcNow;
+        await _unitOfWork.SaveChangesAsync();
+
+        return result;
+    }
+
+    public async Task<byte[]> PreviewCertificateAsync(int trainingId, int? participantId = null)
+    {
+        var training = await _trainingService.GetByIdWithDetailsAsync(trainingId);
+        if (training == null)
+            throw new ArgumentException("Training not found");
+
+        var template = training.Template;
+        var layout = ParseLayout(template.LayoutJson);
+        var signatures = BuildSignatureList(training);
+
+        Dictionary<string, string> dynamicValues;
+        if (participantId.HasValue)
+        {
+            var participant = await _participantService.GetByIdAsync(participantId.Value);
+            if (participant == null)
+                throw new ArgumentException("Participant not found");
+            var certNumber = participant.CertificateNumber ?? GenerateCertificateNumber(training, participant);
+            dynamicValues = BuildDynamicValues(training, participant, certNumber);
+        }
+        else
+        {
+            dynamicValues = new Dictionary<string, string>
+            {
+                ["HolderName"] = "Ornek Ad Soyad",
+                ["TrainingName"] = training.Name,
+                ["TrainingDate"] = training.TrainingDate.ToString("dd.MM.yyyy"),
+                ["CompanyName"] = training.CompanyName ?? "",
+                ["CertificateNo"] = "CERT-ONIZLEME-001",
+                ["QrCode"] = "https://sertifika.example.com/verify/CERT-ONIZLEME-001"
+            };
+        }
+
+        return await _pdfService.PreviewAsync(new PdfGenerateRequest
+        {
+            Orientation = template.Orientation == PageOrientation.Landscape ? "landscape" : "portrait",
+            BackgroundImagePath = ResolveFilePath(template.BackgroundImageUrl),
+            Layout = layout,
+            Signatures = signatures,
+            DynamicValues = dynamicValues
+        });
+    }
+
+    private List<PdfFieldLayout> ParseLayout(string layoutJson)
+    {
+        var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson) ?? new();
+        return fields.Select(f => new PdfFieldLayout
+        {
+            Type = f.FieldType == "dynamic" ? "dynamic" : (f.DynamicKey == "QrCode" ? "qrcode" : "static"),
+            Key = f.DynamicKey,
+            Text = f.StaticText,
+            X = f.X,
+            Y = f.Y,
+            Width = f.Width,
+            Height = f.Height,
+            FontFamily = f.FontFamily == "Arial" ? "Helvetica" : f.FontFamily,
+            FontSize = f.FontSize,
+            FontColor = f.FontColor,
+            IsBold = f.IsBold,
+            IsItalic = f.IsItalic,
+            Alignment = f.TextAlign
+        }).ToList();
+    }
+
+    private List<PdfSignatureInfo> BuildSignatureList(Training training)
+    {
+        return training.TrainingSignatures
+            .OrderBy(ts => ts.DisplayOrder)
+            .Select(ts => new PdfSignatureInfo
+            {
+                Name = ts.Signature.Name,
+                Title = ts.Signature.Title,
+                ImageUrl = ResolveFilePath(ts.Signature.ImageUrl)
+            }).ToList();
+    }
+
+    private Dictionary<string, string> BuildDynamicValues(Training training, Participant participant, string certNumber)
+    {
+        return new Dictionary<string, string>
+        {
+            ["HolderName"] = $"{participant.FirstName} {participant.LastName}",
+            ["TrainingName"] = training.Name,
+            ["TrainingDate"] = training.TrainingDate.ToString("dd.MM.yyyy"),
+            ["CompanyName"] = participant.CompanyName ?? training.CompanyName ?? "",
+            ["CertificateNo"] = certNumber,
+            ["QrCode"] = $"/api/certificates/verify/{certNumber}"
+        };
+    }
+
+    private string GenerateCertificateNumber(Training training, Participant participant)
+    {
+        var date = DateTime.UtcNow;
+        return $"CERT-{date:yyyyMMdd}-{training.Id:D4}-{participant.Id:D4}";
+    }
+
+    private string BuildFilename(Training training, Participant participant)
+    {
+        var company = (participant.CompanyName ?? training.CompanyName ?? "Genel").Replace(" ", "_");
+        var trainingName = training.Name.Replace(" ", "_");
+        var date = training.TrainingDate.ToString("yyyyMMdd");
+        var name = $"{participant.FirstName}_{participant.LastName}";
+        return $"{company}_{trainingName}_{date}_{name}.pdf";
+    }
+
+    private string? ResolveFilePath(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return null;
+        var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var fullPath = Path.Combine(webRoot, relativePath.TrimStart('/'));
+        return File.Exists(fullPath) ? fullPath : null;
+    }
+}
