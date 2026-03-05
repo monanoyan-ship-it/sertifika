@@ -15,6 +15,9 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<CertificateTemplate> CertificateTemplates => Set<CertificateTemplate>();
     public DbSet<Signature> Signatures => Set<Signature>();
+    public DbSet<Training> Trainings => Set<Training>();
+    public DbSet<TrainingSignature> TrainingSignatures => Set<TrainingSignature>();
+    public DbSet<Participant> Participants => Set<Participant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +44,31 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<Training>(entity =>
+        {
+            entity.HasOne(e => e.Template)
+                .WithMany()
+                .HasForeignKey(e => e.TemplateId);
+        });
+
+        modelBuilder.Entity<TrainingSignature>(entity =>
+        {
+            entity.HasOne(e => e.Training)
+                .WithMany(t => t.TrainingSignatures)
+                .HasForeignKey(e => e.TrainingId);
+
+            entity.HasOne(e => e.Signature)
+                .WithMany()
+                .HasForeignKey(e => e.SignatureId);
+        });
+
+        modelBuilder.Entity<Participant>(entity =>
+        {
+            entity.HasOne(e => e.Training)
+                .WithMany(t => t.Participants)
+                .HasForeignKey(e => e.TrainingId);
         });
 
         // Seed Data
