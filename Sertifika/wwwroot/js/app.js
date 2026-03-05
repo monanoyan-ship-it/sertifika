@@ -2,6 +2,36 @@
 let currentUser = null;
 let currentTrainingId = null;
 
+// Toast & Confirm
+function toast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `<span>${message}</span><button class="toast-close" onclick="this.parentElement.remove()">&times;</button>`;
+    container.appendChild(el);
+    setTimeout(() => { el.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => el.remove(), 300); }, duration);
+}
+
+function showConfirm(message) {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-box">
+                <p>${message}</p>
+                <div class="confirm-actions">
+                    <button class="btn" id="confirm-no">Iptal</button>
+                    <button class="btn btn-primary" id="confirm-yes">Evet</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#confirm-yes').addEventListener('click', () => { overlay.remove(); resolve(true); });
+        overlay.querySelector('#confirm-no').addEventListener('click', () => { overlay.remove(); resolve(false); });
+        overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve(false); } });
+    });
+}
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
     if (authToken) {
@@ -83,7 +113,6 @@ function navigateTo(page) {
     const navLink = document.querySelector(`[data-page="${page}"]`);
     if (navLink) navLink.classList.add('active');
 
-    // Load page data
     switch (page) {
         case 'dashboard': loadDashboard(); break;
         case 'templates': loadTemplates(); break;
@@ -191,13 +220,13 @@ async function editTemplate(id) {
         document.querySelectorAll('.content-page').forEach(p => p.style.display = 'none');
         document.getElementById('page-template-editor').style.display = '';
     } catch (err) {
-        alert('Sablon yuklenemedi: ' + err.message);
+        toast('Sablon yuklenemedi: ' + err.message, 'error');
     }
 }
 
 async function saveTemplate() {
     const name = document.getElementById('tpl-name').value;
-    if (!name) { alert('Sablon adi gerekli'); return; }
+    if (!name) { toast('Sablon adi gerekli', 'warning'); return; }
 
     const layout = editorFields.map(f => ({
         FieldType: f.fieldType,
@@ -226,7 +255,6 @@ async function saveTemplate() {
             currentTemplateId = created.id;
         }
 
-        // Upload background if selected
         const bgFile = document.getElementById('tpl-bg-file').files[0];
         if (bgFile && currentTemplateId) {
             const formData = new FormData();
@@ -234,16 +262,17 @@ async function saveTemplate() {
             await apiPost(`/templates/${currentTemplateId}/upload-background`, formData);
         }
 
-        alert('Sablon kaydedildi');
+        toast('Sablon kaydedildi', 'success');
         navigateTo('templates');
     } catch (err) {
-        alert('Hata: ' + err.message);
+        toast('Hata: ' + err.message, 'error');
     }
 }
 
 async function deleteTemplate(id) {
-    if (!confirm('Sablonu silmek istiyor musunuz?')) return;
+    if (!await showConfirm('Sablonu silmek istiyor musunuz?')) return;
     await apiDelete(`/templates/${id}`);
+    toast('Sablon silindi', 'success');
     loadTemplates();
 }
 
@@ -286,14 +315,15 @@ function showSignatureForm() {
         formData.append('file', document.getElementById('sig-file').files[0]);
 
         const res = await apiPost('/signatures', formData);
-        if (res.ok) { closeModal(); loadSignatures(); }
-        else alert('Hata: ' + await res.text());
+        if (res.ok) { closeModal(); toast('Imza eklendi', 'success'); loadSignatures(); }
+        else toast('Hata: ' + await res.text(), 'error');
     });
 }
 
 async function deleteSignature(id) {
-    if (!confirm('Imzayi silmek istiyor musunuz?')) return;
+    if (!await showConfirm('Imzayi silmek istiyor musunuz?')) return;
     await apiDelete(`/signatures/${id}`);
+    toast('Imza silindi', 'success');
     loadSignatures();
 }
 
@@ -354,8 +384,8 @@ function showTrainingForm() {
                 signatureIds: sigIds
             };
             const res = await apiPost('/trainings', body);
-            if (res.ok) { closeModal(); loadTrainings(); }
-            else alert('Hata: ' + await res.text());
+            if (res.ok) { closeModal(); toast('Egitim olusturuldu', 'success'); loadTrainings(); }
+            else toast('Hata: ' + await res.text(), 'error');
         });
     });
 }
@@ -384,7 +414,7 @@ async function showTrainingDetail(id) {
 
         loadParticipants(id);
     } catch (err) {
-        alert('Egitim yuklenemedi: ' + err.message);
+        toast('Egitim yuklenemedi: ' + err.message, 'error');
     }
 }
 
@@ -430,8 +460,8 @@ function showParticipantForm() {
             trainingId: currentTrainingId
         };
         const res = await apiPost(`/trainings/${currentTrainingId}/participants`, body);
-        if (res.ok) { closeModal(); loadParticipants(currentTrainingId); }
-        else alert('Hata: ' + await res.text());
+        if (res.ok) { closeModal(); toast('Katilimci eklendi', 'success'); loadParticipants(currentTrainingId); }
+        else toast('Hata: ' + await res.text(), 'error');
     });
 }
 
@@ -451,27 +481,28 @@ function showExcelUpload() {
         const formData = new FormData();
         formData.append('file', document.getElementById('excel-file').files[0]);
         const res = await apiPost(`/trainings/${currentTrainingId}/participants/import-excel`, formData);
-        if (res.ok) { closeModal(); loadParticipants(currentTrainingId); }
-        else alert('Hata: ' + await res.text());
+        if (res.ok) { closeModal(); toast('Katilimcilar yuklendi', 'success'); loadParticipants(currentTrainingId); }
+        else toast('Hata: ' + await res.text(), 'error');
     });
 }
 
 async function deleteParticipant(id) {
-    if (!confirm('Katilimciyi silmek istiyor musunuz?')) return;
+    if (!await showConfirm('Katilimciyi silmek istiyor musunuz?')) return;
     await apiDelete(`/trainings/${currentTrainingId}/participants/${id}`);
+    toast('Katilimci silindi', 'success');
     loadParticipants(currentTrainingId);
 }
 
 async function generateCertificates() {
-    if (!confirm('Sertifikalar uretilecek. Devam?')) return;
+    if (!await showConfirm('Sertifikalar uretilecek. Devam etmek istiyor musunuz?')) return;
     try {
         const res = await apiPost(`/trainings/${currentTrainingId}/generate`);
         if (!res.ok) throw new Error(await res.text());
         const result = await res.json();
-        alert(`Uretim tamamlandi: ${result.success}/${result.total} basarili`);
+        toast(`Uretim tamamlandi: ${result.success}/${result.total} basarili`, 'success', 6000);
         showTrainingDetail(currentTrainingId);
     } catch (err) {
-        alert('Hata: ' + err.message);
+        toast('Hata: ' + err.message, 'error');
     }
 }
 
@@ -490,21 +521,22 @@ async function downloadZip() {
         a.download = `certificates_training_${currentTrainingId}.zip`;
         a.click();
         URL.revokeObjectURL(url);
+        toast('ZIP dosyasi indiriliyor', 'success');
     } catch (err) {
-        alert('Hata: ' + err.message);
+        toast('Hata: ' + err.message, 'error');
     }
 }
 
 async function sendCertificates() {
-    if (!confirm('Sertifikalar katilimcilara e-posta ile gonderilecek. Devam?')) return;
+    if (!await showConfirm('Sertifikalar katilimcilara e-posta ile gonderilecek. Devam?')) return;
     try {
         const res = await apiPost(`/trainings/${currentTrainingId}/send-certificates`);
         if (!res.ok) throw new Error(await res.text());
         const result = await res.json();
-        alert(`Gonderim: ${result.sent}/${result.total} basarili`);
+        toast(`Gonderim: ${result.sent}/${result.total} basarili`, 'success', 6000);
         showTrainingDetail(currentTrainingId);
     } catch (err) {
-        alert('Hata: ' + err.message);
+        toast('Hata: ' + err.message, 'error');
     }
 }
 
@@ -550,14 +582,15 @@ function showCompanyForm() {
             address: document.getElementById('c-address').value
         };
         const res = await apiPost('/companies', body);
-        if (res.ok) { closeModal(); loadCompanies(); }
-        else alert('Hata: ' + await res.text());
+        if (res.ok) { closeModal(); toast('Firma eklendi', 'success'); loadCompanies(); }
+        else toast('Hata: ' + await res.text(), 'error');
     });
 }
 
 async function deleteCompany(id) {
-    if (!confirm('Firmayi silmek istiyor musunuz?')) return;
+    if (!await showConfirm('Firmayi silmek istiyor musunuz?')) return;
     await apiDelete(`/companies/${id}`);
+    toast('Firma silindi', 'success');
     loadCompanies();
 }
 
