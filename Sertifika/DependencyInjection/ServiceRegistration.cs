@@ -3,6 +3,7 @@ using Sertifika.Factories.Categories;
 using Sertifika.Factories.Certificates;
 using Sertifika.Factories.Auth;
 using Sertifika.Factories.Holders;
+using Sertifika.Factories.Signatures;
 using Sertifika.Factories.Templates;
 using Sertifika.Infrastructure;
 
@@ -21,6 +22,7 @@ public static class ServiceRegistration
         services.AddScoped<ICategoryEntityService, CategoryEntityService>();
         services.AddScoped<IUserEntityService, UserEntityService>();
         services.AddScoped<ITemplateEntityService, TemplateEntityService>();
+        services.AddScoped<ISignatureEntityService, SignatureEntityService>();
 
         // Factories
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();
@@ -28,6 +30,7 @@ public static class ServiceRegistration
         services.AddScoped<ICategoryCrudFactory, CategoryCrudFactory>();
         services.AddScoped<IAuthFactory, AuthFactory>();
         services.AddScoped<ITemplateCrudFactory, TemplateCrudFactory>();
+        services.AddScoped<ISignatureCrudFactory, SignatureCrudFactory>();
 
         return services;
     }
