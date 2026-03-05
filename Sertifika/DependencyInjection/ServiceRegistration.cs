@@ -7,6 +7,7 @@ using Sertifika.Factories.Participants;
 using Sertifika.Factories.Signatures;
 using Sertifika.Factories.Templates;
 using Sertifika.Factories.Trainings;
+using Sertifika.Factories.Companies;
 using Sertifika.Infrastructure;
 
 namespace Sertifika.DependencyInjection;
@@ -27,6 +28,7 @@ public static class ServiceRegistration
         services.AddScoped<ISignatureEntityService, SignatureEntityService>();
         services.AddScoped<ITrainingEntityService, TrainingEntityService>();
         services.AddScoped<IParticipantEntityService, ParticipantEntityService>();
+        services.AddScoped<ICompanyEntityService, CompanyEntityService>();
 
         // Factories
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();
@@ -37,6 +39,7 @@ public static class ServiceRegistration
         services.AddScoped<ISignatureCrudFactory, SignatureCrudFactory>();
         services.AddScoped<ITrainingCrudFactory, TrainingCrudFactory>();
         services.AddScoped<IParticipantCrudFactory, ParticipantCrudFactory>();
+        services.AddScoped<ICompanyCrudFactory, CompanyCrudFactory>();
 
         return services;
     }
