@@ -110,7 +110,7 @@ def generate_certificate_pdf(
         elif field_type == "qrcode":
             qr_data = dynamic_values.get("QrCode", dynamic_values.get("CertificateNo", ""))
             if qr_data:
-                _draw_qr_code(c, qr_data, field, page_height)
+                _draw_qr_code(c, qr_data, field, page_width, page_height)
             continue
         else:
             continue
@@ -154,14 +154,13 @@ def generate_certificate_pdf(
     return buffer.getvalue()
 
 
-def _draw_qr_code(c: canvas.Canvas, data: str, field: dict, page_height: float):
+def _draw_qr_code(c: canvas.Canvas, data: str, field: dict, page_width: float, page_height: float):
     """Draw a QR code on the canvas."""
     qr = qrcode.QRCode(version=1, box_size=10, border=1)
     qr.add_data(data)
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white")
 
-    # Convert to bytes
     img_buffer = io.BytesIO()
     qr_img.save(img_buffer, format="PNG")
     img_buffer.seek(0)
@@ -169,10 +168,11 @@ def _draw_qr_code(c: canvas.Canvas, data: str, field: dict, page_height: float):
     from reportlab.lib.utils import ImageReader
     img_reader = ImageReader(img_buffer)
 
-    page_width_for_calc = page_height  # Will be recalculated
-    x = field.get("x", 0) / 100 * 841.89  # Use landscape width as default
+    x = field.get("x", 0) / 100 * page_width
     y_from_top = field.get("y", 0) / 100 * page_height
-    size = field.get("width", 10) / 100 * page_height
+    width = field.get("width", 10) / 100 * page_width
+    height = field.get("height", 10) / 100 * page_height
+    size = min(width, height)
 
     y = page_height - y_from_top - size
 
