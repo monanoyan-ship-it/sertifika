@@ -1,6 +1,7 @@
 using Sertifika.EntityServices;
 using Sertifika.Factories.Categories;
 using Sertifika.Factories.Certificates;
+using Sertifika.Factories.Auth;
 using Sertifika.Factories.Holders;
 using Sertifika.Infrastructure;
 
@@ -23,6 +24,7 @@ public static class ServiceRegistration
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();
         services.AddScoped<IHolderCrudFactory, HolderCrudFactory>();
         services.AddScoped<ICategoryCrudFactory, CategoryCrudFactory>();
+        services.AddScoped<IAuthFactory, AuthFactory>();
 
         return services;
     }
