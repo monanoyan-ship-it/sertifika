@@ -1,0 +1,82 @@
+@{
+    ViewData["Title"] = "Imza Kutuphanesi";
+}
+
+<div class="container mt-4" id="signaturesApp">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Imza Kutuphanesi</h2>
+        <button class="btn btn-primary" data-bind="click: openCreateModal">
+            <i class="bi bi-plus-circle me-1"></i> Yeni Imza
+        </button>
+    </div>
+
+    <div data-bind="visible: isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div class="row g-3" data-bind="foreach: signatures, visible: !isLoading()">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <!-- ko if: imageUrl -->
+                    <img data-bind="attr: { src: imageUrl }" class="img-fluid mb-2" style="max-height: 80px;" alt="">
+                    <!-- /ko -->
+                    <!-- ko ifnot: imageUrl -->
+                    <i class="bi bi-pen display-4 text-muted"></i>
+                    <!-- /ko -->
+                    <h5 class="card-title mt-2" data-bind="text: name"></h5>
+                    <p class="text-muted" data-bind="text: title"></p>
+                </div>
+                <div class="card-footer bg-transparent text-end">
+                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteSignature">
+                        <i class="bi bi-trash me-1"></i>Sil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-bind="visible: !isLoading() && signatures().length === 0" class="text-center py-5 text-muted">
+        <i class="bi bi-pen display-1"></i>
+        <p class="mt-2">Henuz imza yok.</p>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Imza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form data-bind="submit: saveSignature">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ad Soyad</label>
+                        <input type="text" class="form-control" data-bind="value: formData().name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Unvan</label>
+                        <input type="text" class="form-control" data-bind="value: formData().title">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Imza Gorseli</label>
+                        <input type="file" class="form-control" id="sig-file" accept="image/*" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Signatures.js"></script>
+}

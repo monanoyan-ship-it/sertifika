@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-4" id="dashboardApp">
+    <h2 class="mb-4">Dashboard</h2>
+
+    <div data-bind="visible: isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2 text-muted">Yukleniyor...</p>
+    </div>
+
+    <div class="row g-4" data-bind="visible: !isLoading()">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-mortarboard display-4 text-primary"></i>
+                    <h3 class="mt-2" data-bind="text: trainingCount">0</h3>
+                    <p class="text-muted mb-0">Egitimler</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-layout-text-window display-4 text-success"></i>
+                    <h3 class="mt-2" data-bind="text: templateCount">0</h3>
+                    <p class="text-muted mb-0">Sablonlar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-pen display-4 text-warning"></i>
+                    <h3 class="mt-2" data-bind="text: signatureCount">0</h3>
+                    <p class="text-muted mb-0">Imzalar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-building display-4 text-info"></i>
+                    <h3 class="mt-2" data-bind="text: companyCount">0</h3>
+                    <p class="text-muted mb-0">Firmalar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Dashboard.js"></script>
+}

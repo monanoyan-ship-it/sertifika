@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Sablon Yonetimi";
+}
+
+<div class="container mt-4" id="templatesApp">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Sablon Yonetimi</h2>
+        <a asp-action="TemplateEditor" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Yeni Sablon
+        </a>
+    </div>
+
+    <div data-bind="visible: isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div class="row g-3" data-bind="foreach: templates, visible: !isLoading()">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title" data-bind="text: name"></h5>
+                    <p class="text-muted" data-bind="text: description || ''"></p>
+                    <span class="badge bg-secondary" data-bind="text: orientation === 0 ? 'Yatay' : 'Dikey'"></span>
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-primary" data-bind="attr: { href: '/Panel/TemplateEditor/' + id }">
+                        <i class="bi bi-pencil me-1"></i>Duzenle
+                    </a>
+                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteTemplate">
+                        <i class="bi bi-trash me-1"></i>Sil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-bind="visible: !isLoading() && templates().length === 0" class="text-center py-5 text-muted">
+        <i class="bi bi-layout-text-window display-1"></i>
+        <p class="mt-2">Henuz sablon yok.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Templates.js"></script>
+}

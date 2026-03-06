@@ -1,0 +1,103 @@
+@{
+    ViewData["Title"] = "Egitim Yonetimi";
+}
+
+<div class="container mt-4" id="trainingsApp">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Egitim Yonetimi</h2>
+        <button class="btn btn-primary" data-bind="click: openCreateModal">
+            <i class="bi bi-plus-circle me-1"></i> Yeni Egitim
+        </button>
+    </div>
+
+    <div data-bind="visible: isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div class="list-group" data-bind="foreach: trainings, visible: !isLoading()">
+        <a class="list-group-item list-group-item-action" data-bind="attr: { href: '/Panel/TrainingDetail/' + id }">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1" data-bind="text: name"></h5>
+                    <p class="mb-0 text-muted">
+                        <span data-bind="text: companyName || ''"></span>
+                        <span> - </span>
+                        <span data-bind="text: $parent.formatDate(trainingDate)"></span>
+                    </p>
+                </div>
+                <div class="text-end">
+                    <span class="badge" data-bind="text: $parent.getStatusLabel(status), css: $parent.getStatusClass(status)"></span>
+                    <p class="mb-0 mt-1 small text-muted">
+                        <span data-bind="text: (participants && participants.length) || 0"></span> katilimci
+                    </p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div data-bind="visible: !isLoading() && trainings().length === 0" class="text-center py-5 text-muted">
+        <i class="bi bi-mortarboard display-1"></i>
+        <p class="mt-2">Henuz egitim yok.</p>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="formModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Egitim</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form data-bind="submit: saveTraining">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Egitim Adi</label>
+                            <input type="text" class="form-control" data-bind="value: formData().name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tarih</label>
+                            <input type="date" class="form-control" data-bind="value: formData().trainingDate" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aciklama</label>
+                        <textarea class="form-control" rows="2" data-bind="value: formData().description"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Firma Adi</label>
+                            <input type="text" class="form-control" data-bind="value: formData().companyName">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sablon</label>
+                            <select class="form-select" data-bind="options: availableTemplates, optionsText: 'name', optionsValue: 'id', value: formData().templateId"></select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Imzalar</label>
+                        <div data-bind="foreach: availableSignatures">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" data-bind="value: id, checked: $parent.selectedSignatureIds">
+                                <label class="form-check-label" data-bind="text: name + ' (' + title + ')'"></label>
+                            </div>
+                        </div>
+                        <p data-bind="visible: availableSignatures().length === 0" class="text-muted small">Imza bulunamadi</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        Olustur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Trainings.js"></script>
+}

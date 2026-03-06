@@ -1,0 +1,164 @@
+@{
+    ViewData["Title"] = ViewData["TemplateId"] != null ? "Sablon Duzenle" : "Yeni Sablon";
+    var templateId = ViewData["TemplateId"];
+}
+
+<div class="container-fluid mt-3" id="editorApp">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 data-bind="text: editorTitle"></h2>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary" data-bind="click: addStaticField">
+                <i class="bi bi-fonts me-1"></i>Metin Ekle
+            </button>
+            <button class="btn btn-sm btn-outline-primary" data-bind="click: addDynamicField">
+                <i class="bi bi-braces me-1"></i>Dinamik Alan
+            </button>
+            <button class="btn btn-sm btn-outline-success" data-bind="click: addQrCodeField">
+                <i class="bi bi-qr-code me-1"></i>QR Kod
+            </button>
+            <button class="btn btn-sm btn-outline-warning" data-bind="click: addSignatureField">
+                <i class="bi bi-pen me-1"></i>Imza Ekle
+            </button>
+            <button class="btn btn-primary btn-sm" data-bind="click: saveTemplate, disable: isSaving">
+                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-floppy me-1" data-bind="visible: !isSaving()"></i>Kaydet
+            </button>
+            <a asp-action="Templates" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Geri
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Canvas -->
+        <div class="col-md-9">
+            <div class="border rounded bg-white position-relative overflow-hidden" id="editor-canvas"
+                 data-bind="css: { 'editor-landscape': orientation() === '0', 'editor-portrait': orientation() === '1' }">
+                <img id="editor-bg" class="position-absolute w-100 h-100" style="object-fit: cover; top:0; left:0;"
+                     data-bind="attr: { src: backgroundPreview }, visible: backgroundPreview()" alt="">
+                <!-- Fields rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-header"><strong>Sablon Ayarlari</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Sablon Adi</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: templateName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aciklama</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: templateDesc">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Yonelim</label>
+                        <select class="form-select form-select-sm" data-bind="value: orientation">
+                            <option value="0">Yatay (Landscape)</option>
+                            <option value="1">Dikey (Portrait)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Arka Plan</label>
+                        <input type="file" class="form-control form-control-sm" id="tpl-bg-file" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Field Properties -->
+            <div class="card shadow-sm mt-3" data-bind="visible: selectedField()">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Secili Alan</strong>
+                    <button class="btn btn-sm btn-outline-danger" data-bind="click: deleteSelectedField">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body" data-bind="with: selectedField">
+                    <div class="mb-2">
+                        <label class="form-label">Tip</label>
+                        <span class="badge" data-bind="text: $parent.getFieldTypeLabel(fieldType),
+                            css: { 'bg-secondary': fieldType === 'static', 'bg-primary': fieldType === 'dynamic', 'bg-success': fieldType === 'qrcode', 'bg-warning text-dark': fieldType === 'signature' }"></span>
+                    </div>
+                    <!-- ko if: fieldType === 'static' -->
+                    <div class="mb-2">
+                        <label class="form-label">Metin</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: staticText, event: { input: $parent.onFieldChanged }">
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: fieldType === 'dynamic' -->
+                    <div class="mb-2">
+                        <label class="form-label">Dinamik Alan</label>
+                        <select class="form-select form-select-sm" data-bind="value: dynamicKey, event: { change: $parent.onFieldChanged }">
+                            <option value="HolderName">Katilimci Ad Soyad</option>
+                            <option value="TrainingName">Egitim Adi</option>
+                            <option value="TrainingDate">Egitim Tarihi</option>
+                            <option value="CompanyName">Firma Adi</option>
+                            <option value="CertificateNo">Sertifika No</option>
+                        </select>
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: fieldType === 'signature' -->
+                    <div class="mb-2">
+                        <label class="form-label">Imza</label>
+                        <select class="form-select form-select-sm" data-bind="options: $parent.availableSignatures, optionsText: $parent.signatureOptionText, optionsValue: 'id', value: signatureId, event: { change: $parent.onFieldChanged }"></select>
+                        <div class="mt-1" data-bind="visible: signatureId">
+                            <!-- ko with: $parent.getSignatureById(signatureId) -->
+                            <!-- ko if: imageUrl -->
+                            <img data-bind="attr: { src: imageUrl }" class="img-fluid border rounded" style="max-height: 50px;" alt="">
+                            <!-- /ko -->
+                            <!-- /ko -->
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: fieldType !== 'signature' && fieldType !== 'qrcode' -->
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label">Font</label>
+                            <select class="form-select form-select-sm" data-bind="value: fontFamily, event: { change: $parent.onFieldChanged }">
+                                <option value="Arial">Arial</option>
+                                <option value="Times">Times</option>
+                                <option value="Courier">Courier</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Boyut</label>
+                            <input type="number" class="form-control form-control-sm" min="8" max="72" data-bind="value: fontSize, event: { change: $parent.onFieldChanged }">
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label">Renk</label>
+                            <input type="color" class="form-control form-control-sm" data-bind="value: fontColor, event: { change: $parent.onFieldChanged }">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Hizalama</label>
+                            <select class="form-select form-select-sm" data-bind="value: textAlign, event: { change: $parent.onFieldChanged }">
+                                <option value="left">Sol</option>
+                                <option value="center">Orta</option>
+                                <option value="right">Sag</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" data-bind="checked: isBold, event: { change: $parent.onFieldChanged }">
+                            <label class="form-check-label">Kalin</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" data-bind="checked: isItalic, event: { change: $parent.onFieldChanged }">
+                            <label class="form-check-label">Italik</label>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>var templateId = @(templateId != null ? templateId : "null");</script>
+    <script src="~/js/TemplateEditor.js"></script>
+}

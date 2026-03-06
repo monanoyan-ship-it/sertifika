@@ -1,0 +1,230 @@
+// trainingId is set by the Razor view before this script loads
+function TrainingDetailViewModel() {
+    var self = this;
+
+    self.training = ko.observable(null);
+    self.participants = ko.observableArray([]);
+    self.isLoading = ko.observable(true);
+    self.isSaving = ko.observable(false);
+    self.isEditingParticipant = ko.observable(false);
+    self.editingParticipantId = null;
+
+    self.participantForm = ko.observable({ firstName: '', lastName: '', email: '', companyName: '' });
+    self.contactForm = ko.observable({ name: '', email: '' });
+
+    var participantModal, excelModal, sendContactModal;
+
+    self.formatDate = function(dateStr) { return formatDate(dateStr); };
+
+    self.getStatusLabel = function(status) {
+        return { 0: 'Taslak', 1: 'Hazir', 2: 'Uretildi', 3: 'Dagitildi' }[status] || '';
+    };
+
+    self.getStatusClass = function(status) {
+        return { 0: 'bg-secondary', 1: 'bg-info', 2: 'bg-success', 3: 'bg-primary' }[status] || 'bg-secondary';
+    };
+
+    self.loadData = function() {
+        self.isLoading(true);
+        apiGet('/trainings/' + trainingId)
+            .done(function(data) {
+                self.training(data);
+                self.isLoading(false);
+                self.loadParticipants();
+            })
+            .fail(function() {
+                toastr.error('Egitim yuklenemedi');
+                self.isLoading(false);
+            });
+    };
+
+    self.loadParticipants = function() {
+        apiGet('/trainings/' + trainingId + '/participants')
+            .done(function(data) { self.participants(data); })
+            .fail(function() { console.error('Katilimcilar yuklenemedi'); });
+    };
+
+    // Participant CRUD
+    self.openParticipantModal = function() {
+        self.isEditingParticipant(false);
+        self.editingParticipantId = null;
+        self.participantForm({ firstName: '', lastName: '', email: '', companyName: '' });
+        participantModal.show();
+    };
+
+    self.openEditParticipantModal = function(p) {
+        self.isEditingParticipant(true);
+        self.editingParticipantId = p.id;
+        self.participantForm({
+            firstName: p.firstName,
+            lastName: p.lastName,
+            email: p.email || '',
+            companyName: p.companyName || ''
+        });
+        participantModal.show();
+    };
+
+    self.saveParticipant = function() {
+        self.isSaving(true);
+        var data = self.participantForm();
+        data.trainingId = parseInt(trainingId);
+
+        var promise;
+        if (self.isEditingParticipant()) {
+            data.id = self.editingParticipantId;
+            promise = apiPut('/trainings/' + trainingId + '/participants/' + self.editingParticipantId, data);
+        } else {
+            promise = apiPost('/trainings/' + trainingId + '/participants', data);
+        }
+
+        promise
+            .done(function() {
+                participantModal.hide();
+                toastr.success(self.isEditingParticipant() ? 'Katilimci guncellendi' : 'Katilimci eklendi');
+                self.loadParticipants();
+                self.isSaving(false);
+            })
+            .fail(function(xhr) {
+                toastr.error('Hata: ' + (xhr.responseText || 'Islem basarisiz'));
+                self.isSaving(false);
+            });
+    };
+
+    self.deleteParticipant = function(p) {
+        showConfirm('Katilimciyi silmek istiyor musunuz?').then(function(ok) {
+            if (!ok) return;
+            apiDelete('/trainings/' + trainingId + '/participants/' + p.id)
+                .done(function() {
+                    toastr.success('Katilimci silindi');
+                    self.loadParticipants();
+                })
+                .fail(function() { toastr.error('Silinemedi'); });
+        });
+    };
+
+    // Excel
+    self.openExcelModal = function() {
+        document.getElementById('excel-file').value = '';
+        excelModal.show();
+    };
+
+    self.uploadExcel = function() {
+        var file = document.getElementById('excel-file').files[0];
+        if (!file) { toastr.warning('Dosya secin'); return; }
+
+        self.isSaving(true);
+        var formData = new FormData();
+        formData.append('file', file);
+
+        apiPost('/trainings/' + trainingId + '/participants/import-excel', formData, true)
+            .done(function() {
+                excelModal.hide();
+                toastr.success('Katilimcilar yuklendi');
+                self.loadParticipants();
+                self.isSaving(false);
+            })
+            .fail(function(xhr) {
+                toastr.error('Hata: ' + (xhr.responseText || 'Yuklenemedi'));
+                self.isSaving(false);
+            });
+    };
+
+    // Certificate actions
+    self.generateCertificates = function() {
+        var longNames = self.participants().filter(function(p) {
+            return (p.firstName + ' ' + p.lastName).length > 40;
+        });
+        if (longNames.length > 0) {
+            toastr.warning(longNames.length + ' katilimcinin ad soyadi 40 karakterden uzun.');
+        }
+
+        showConfirm('Sertifikalar uretilecek. Devam?').then(function(ok) {
+            if (!ok) return;
+            apiPost('/trainings/' + trainingId + '/generate')
+                .done(function(result) {
+                    toastr.success('Uretim: ' + result.success + '/' + result.total + ' basarili');
+                    self.loadData();
+                })
+                .fail(function(xhr) {
+                    toastr.error('Hata: ' + (xhr.responseText || 'Uretim basarisiz'));
+                });
+        });
+    };
+
+    self.previewCertificate = function() {
+        window.open(API_BASE + '/trainings/' + trainingId + '/preview?access_token=' + getToken(), '_blank');
+    };
+
+    self.downloadZip = function() {
+        $.ajax({
+            url: API_BASE + '/trainings/' + trainingId + '/download-zip',
+            method: 'GET',
+            xhrFields: { responseType: 'blob' }
+        })
+        .done(function(blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'certificates_training_' + trainingId + '.zip';
+            a.click();
+            URL.revokeObjectURL(url);
+            toastr.success('ZIP indiriliyor');
+        })
+        .fail(function() { toastr.error('ZIP indirilemedi'); });
+    };
+
+    self.sendCertificates = function() {
+        showConfirm('Sertifikalar e-posta ile gonderilecek. Devam?').then(function(ok) {
+            if (!ok) return;
+            apiPost('/trainings/' + trainingId + '/send-certificates')
+                .done(function(result) {
+                    toastr.success('Gonderim: ' + result.sent + '/' + result.total + ' basarili');
+                    self.loadData();
+                })
+                .fail(function(xhr) {
+                    toastr.error('Hata: ' + (xhr.responseText || 'Gonderim basarisiz'));
+                });
+        });
+    };
+
+    self.openSendToContactModal = function() {
+        self.contactForm({ name: '', email: '' });
+        sendContactModal.show();
+    };
+
+    self.sendToContact = function() {
+        self.isSaving(true);
+        apiPost('/trainings/' + trainingId + '/send-to-contact', self.contactForm())
+            .done(function() {
+                sendContactModal.hide();
+                toastr.success('Sertifikalar gonderildi');
+                self.isSaving(false);
+            })
+            .fail(function(xhr) {
+                toastr.error('Hata: ' + (xhr.responseText || 'Gonderilemedi'));
+                self.isSaving(false);
+            });
+    };
+
+    self.archiveToOneDrive = function() {
+        showConfirm('OneDrive\'a arsivlenecek. Devam?').then(function(ok) {
+            if (!ok) return;
+            apiPost('/trainings/' + trainingId + '/archive-onedrive')
+                .done(function(result) {
+                    toastr.success('Arsivleme: ' + result.uploaded + '/' + result.total + ' yuklendi');
+                })
+                .fail(function(xhr) {
+                    toastr.error('Hata: ' + (xhr.responseText || 'Arsivleme basarisiz'));
+                });
+        });
+    };
+
+    $(document).ready(function() {
+        participantModal = new bootstrap.Modal(document.getElementById('participantModal'));
+        excelModal = new bootstrap.Modal(document.getElementById('excelModal'));
+        sendContactModal = new bootstrap.Modal(document.getElementById('sendContactModal'));
+        self.loadData();
+    });
+}
+
+requireAuth() && ko.applyBindings(new TrainingDetailViewModel(), document.getElementById('trainingDetailApp'));
