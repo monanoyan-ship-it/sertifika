@@ -10,7 +10,8 @@
       "Bash(do curl:*)",
       "Bash(python:*)",
       "Bash(taskkill:*)",
-      "Bash(cmd:*)"
+      "Bash(cmd:*)",
+      "Bash(ls:*)"
     ]
   }
 }
