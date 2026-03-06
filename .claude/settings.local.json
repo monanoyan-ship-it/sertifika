@@ -11,7 +11,8 @@
       "Bash(python:*)",
       "Bash(taskkill:*)",
       "Bash(cmd:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(tr ;:*)"
     ]
   }
 }
