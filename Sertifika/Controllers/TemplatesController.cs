@@ -106,12 +106,6 @@ public class TemplatesController : ControllerBase
             .ToList();
 
         var signatures = new List<PdfSignatureInfo>();
-        Console.WriteLine($"[PREVIEW DEBUG] request.Signatures is null: {request.Signatures == null}, count: {request.Signatures?.Count ?? -1}");
-        if (request.Signatures != null)
-        {
-            foreach (var s in request.Signatures)
-                Console.WriteLine($"[PREVIEW DEBUG] sig={s.SignatureId} nameX={s.NameX} nameY={s.NameY} titleX={s.TitleX} titleY={s.TitleY}");
-        }
         if (request.Signatures != null && request.Signatures.Count > 0)
         {
             foreach (var rs in request.Signatures)

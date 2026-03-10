@@ -570,8 +570,6 @@ function TemplateEditorViewModel() {
             };
         });
 
-        console.log('[PREVIEW] Sending signatures:', JSON.stringify(sigs, null, 2));
-
         var body = {
             layoutJson: JSON.stringify(layout),
             orientation: parseInt(self.orientation()),
