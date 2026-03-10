@@ -4,7 +4,24 @@ function CompaniesViewModel() {
     self.companies = ko.observableArray([]);
     self.isLoading = ko.observable(true);
     self.isSaving = ko.observable(false);
-    self.formData = ko.observable({ name: '', contactEmail: '', contactPhone: '', address: '' });
+    self.isEditing = ko.observable(false);
+    self.editingId = null;
+    self.searchQuery = ko.observable('');
+
+    self.formName = ko.observable('');
+    self.formContactEmail = ko.observable('');
+    self.formContactPhone = ko.observable('');
+    self.formAddress = ko.observable('');
+
+    self.filteredCompanies = ko.computed(function() {
+        var q = self.searchQuery().toLocaleLowerCase('tr');
+        if (!q) return self.companies();
+        return self.companies().filter(function(c) {
+            return (c.name || '').toLocaleLowerCase('tr').indexOf(q) >= 0 ||
+                   (c.contactEmail || '').toLocaleLowerCase('tr').indexOf(q) >= 0 ||
+                   (c.contactPhone || '').indexOf(q) >= 0;
+        });
+    });
 
     var formModal;
 
@@ -22,21 +39,52 @@ function CompaniesViewModel() {
     };
 
     self.openCreateModal = function() {
-        self.formData({ name: '', contactEmail: '', contactPhone: '', address: '' });
+        self.isEditing(false);
+        self.editingId = null;
+        self.formName('');
+        self.formContactEmail('');
+        self.formContactPhone('');
+        self.formAddress('');
+        formModal.show();
+    };
+
+    self.openEditModal = function(company) {
+        self.isEditing(true);
+        self.editingId = company.id;
+        self.formName(company.name || '');
+        self.formContactEmail(company.contactEmail || '');
+        self.formContactPhone(company.contactPhone || '');
+        self.formAddress(company.address || '');
         formModal.show();
     };
 
     self.saveCompany = function() {
         self.isSaving(true);
-        apiPost('/companies', self.formData())
+        var body = {
+            name: self.formName(),
+            contactEmail: self.formContactEmail(),
+            contactPhone: self.formContactPhone(),
+            address: self.formAddress()
+        };
+
+        var promise;
+        if (self.isEditing()) {
+            body.id = self.editingId;
+            promise = apiPut('/companies/' + self.editingId, body);
+        } else {
+            promise = apiPost('/companies', body);
+        }
+
+        promise
             .done(function() {
                 formModal.hide();
-                toastr.success('Firma eklendi');
+                toastr.success(self.isEditing() ? 'Firma guncellendi' : 'Firma eklendi');
                 self.loadData();
-                self.isSaving(false);
             })
             .fail(function() {
-                toastr.error('Firma eklenemedi');
+                toastr.error('Islem basarisiz');
+            })
+            .always(function() {
                 self.isSaving(false);
             });
     };
