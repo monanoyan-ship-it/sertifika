@@ -63,6 +63,12 @@ public class PanelController : Controller
         return View();
     }
 
+    public IActionResult EmailTemplates()
+    {
+        SetViewData("emailtemplates", "E-posta Sablonlari");
+        return View();
+    }
+
     public IActionResult Settings()
     {
         SetViewData("settings", "Ayarlar");

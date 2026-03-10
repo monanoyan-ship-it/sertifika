@@ -45,55 +45,165 @@
         </div>
     </div>
 
-    <div data-bind="visible: !isLoading() && accounts().length === 0" class="text-center py-5 text-muted">
-        <i class="bi bi-cloud display-1"></i>
+    <div data-bind="visible: !isLoading() && accounts().length === 0" class="text-center py-3 text-muted">
+        <i class="bi bi-cloud display-4"></i>
         <p class="mt-2">Henuz OneDrive hesabi yok.</p>
     </div>
-</div>
 
-<!-- Create Modal -->
-<div class="modal fade" id="formModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Yeni OneDrive Hesabi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form data-bind="submit: saveAccount">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Hesap Adi</label>
-                        <input type="text" class="form-control" data-bind="value: formData().name" required>
+    <hr class="my-4">
+
+    <!-- SMTP Accounts -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>E-posta (SMTP) Hesaplari</h4>
+        <button class="btn btn-primary" data-bind="click: openSmtpCreateModal">
+            <i class="bi bi-plus-circle me-1"></i> Yeni SMTP Hesabi
+        </button>
+    </div>
+
+    <div class="row g-3" data-bind="foreach: smtpAccounts, visible: !isLoading()">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title" data-bind="text: name"></h5>
+                        <!-- ko if: isDefault -->
+                        <span class="badge bg-success">Varsayilan</span>
+                        <!-- /ko -->
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tenant ID</label>
-                        <input type="text" class="form-control" data-bind="value: formData().tenantId" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Client ID</label>
-                        <input type="text" class="form-control" data-bind="value: formData().clientId" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Client Secret</label>
-                        <input type="password" class="form-control" data-bind="value: formData().clientSecret" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Drive User ID</label>
-                        <input type="text" class="form-control" data-bind="value: formData().driveUserId" required>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="od-default" data-bind="checked: formData().isDefault">
-                        <label class="form-check-label" for="od-default">Varsayilan hesap</label>
-                    </div>
+                    <p class="mb-1 small"><strong>Sunucu:</strong> <code data-bind="text: host + ':' + port"></code>
+                        <!-- ko if: useSsl --> <span class="badge bg-info">SSL</span><!-- /ko -->
+                    </p>
+                    <p class="mb-1 small"><strong>Gonderen:</strong> <span data-bind="text: fromEmail"></span></p>
+                    <p class="mb-0 small"><strong>Kullanici:</strong> <span data-bind="text: username"></span></p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Kaydet
+                <div class="card-footer bg-transparent d-flex gap-2 justify-content-end">
+                    <!-- ko ifnot: isDefault -->
+                    <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.setSmtpDefault">
+                        <i class="bi bi-check-circle me-1"></i>Varsayilan Yap
+                    </button>
+                    <!-- /ko -->
+                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteSmtpAccount">
+                        <i class="bi bi-trash me-1"></i>Sil
                     </button>
                 </div>
-            </form>
+            </div>
+        </div>
+    </div>
+
+    <div data-bind="visible: !isLoading() && smtpAccounts().length === 0" class="text-center py-3 text-muted">
+        <i class="bi bi-envelope display-4"></i>
+        <p class="mt-2">Henuz SMTP hesabi yok.</p>
+    </div>
+
+    <!-- OneDrive Create Modal -->
+    <div class="modal fade" id="formModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni OneDrive Hesabi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveAccount">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Hesap Adi</label>
+                            <input type="text" class="form-control" data-bind="textInput: formName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tenant ID</label>
+                            <input type="text" class="form-control" data-bind="textInput: formTenantId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" class="form-control" data-bind="textInput: formClientId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Client Secret</label>
+                            <input type="password" class="form-control" data-bind="textInput: formClientSecret" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Drive User ID</label>
+                            <input type="text" class="form-control" data-bind="textInput: formDriveUserId" required>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="od-default" data-bind="checked: formIsDefault">
+                            <label class="form-check-label" for="od-default">Varsayilan hesap</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMTP Create Modal -->
+    <div class="modal fade" id="smtpModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni SMTP Hesabi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveSmtpAccount">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Hesap Adi</label>
+                            <input type="text" class="form-control" data-bind="textInput: smtpName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">SMTP Sunucu</label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpHost" placeholder="smtp.gmail.com" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Port</label>
+                                <input type="number" class="form-control" data-bind="value: smtpPort" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kullanici Adi</label>
+                            <input type="text" class="form-control" data-bind="textInput: smtpUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sifre</label>
+                            <input type="password" class="form-control" data-bind="textInput: smtpPassword" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Gonderen E-posta</label>
+                                <input type="email" class="form-control" data-bind="textInput: smtpFromEmail" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Gonderen Adi</label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpFromName">
+                            </div>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="smtp-ssl" data-bind="checked: smtpUseSsl">
+                                <label class="form-check-label" for="smtp-ssl">SSL/TLS</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="smtp-default" data-bind="checked: smtpIsDefault">
+                                <label class="form-check-label" for="smtp-default">Varsayilan</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

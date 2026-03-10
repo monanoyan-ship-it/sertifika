@@ -11,6 +11,8 @@ using Sertifika.Factories.Companies;
 using Sertifika.Factories.CertificateGeneration;
 using Sertifika.Factories.Distribution;
 using Sertifika.Factories.OneDriveAccounts;
+using Sertifika.Factories.SmtpAccounts;
+using Sertifika.Factories.EmailTemplates;
 using Sertifika.Infrastructure;
 
 namespace Sertifika.DependencyInjection;
@@ -33,6 +35,8 @@ public static class ServiceRegistration
         services.AddScoped<IParticipantEntityService, ParticipantEntityService>();
         services.AddScoped<ICompanyEntityService, CompanyEntityService>();
         services.AddScoped<IOneDriveAccountEntityService, OneDriveAccountEntityService>();
+        services.AddScoped<ISmtpAccountEntityService, SmtpAccountEntityService>();
+        services.AddScoped<IEmailTemplateEntityService, EmailTemplateEntityService>();
 
         // Factories
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();
@@ -47,6 +51,8 @@ public static class ServiceRegistration
         services.AddScoped<ICertificateGenerationFactory, CertificateGenerationFactory>();
         services.AddScoped<IDistributionFactory, DistributionFactory>();
         services.AddScoped<IOneDriveAccountCrudFactory, OneDriveAccountCrudFactory>();
+        services.AddScoped<ISmtpAccountCrudFactory, SmtpAccountCrudFactory>();
+        services.AddScoped<IEmailTemplateCrudFactory, EmailTemplateCrudFactory>();
 
         return services;
     }

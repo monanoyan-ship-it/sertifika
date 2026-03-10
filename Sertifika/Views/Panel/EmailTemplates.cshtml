@@ -1,0 +1,129 @@
+@{
+    ViewData["Title"] = "E-posta Sablonlari";
+}
+
+<div class="container mt-4" id="emailTemplatesApp">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>E-posta Sablonlari</h2>
+        <button class="btn btn-primary" data-bind="click: openCreateModal">
+            <i class="bi bi-plus-circle me-1"></i> Yeni Sablon
+        </button>
+    </div>
+
+    <div data-bind="visible: isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div class="table-responsive" data-bind="visible: !isLoading() && templates().length > 0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sablon Adi</th>
+                    <th>Konu</th>
+                    <th style="width: 100px;">Durum</th>
+                    <th style="width: 120px;" class="text-end">Islem</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: templates">
+                <tr>
+                    <td>
+                        <span data-bind="text: name"></span>
+                        <!-- ko if: isDefault -->
+                        <span class="badge bg-success ms-1">Varsayilan</span>
+                        <!-- /ko -->
+                    </td>
+                    <td class="text-muted" data-bind="text: subject"></td>
+                    <td><span class="badge bg-info">Aktif</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" data-bind="click: $parent.openEditModal" title="Duzenle">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <!-- ko ifnot: isDefault -->
+                        <button class="btn btn-sm btn-outline-success me-1" data-bind="click: $parent.setDefault" title="Varsayilan Yap">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                        <!-- /ko -->
+                        <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteTemplate" title="Sil">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div data-bind="visible: !isLoading() && templates().length === 0" class="text-center py-5 text-muted">
+        <i class="bi bi-envelope display-1"></i>
+        <p class="mt-2">Henuz e-posta sablonu yok.</p>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div class="modal fade" id="formModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-bind="text: isEditing() ? 'Sablon Duzenle' : 'Yeni Sablon'"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveTemplate">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Sablon Adi</label>
+                                    <input type="text" class="form-control" data-bind="textInput: formName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">E-posta Konusu</label>
+                                    <input type="text" class="form-control" data-bind="textInput: formSubject" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">E-posta Govdesi (HTML)</label>
+                                    <textarea class="form-control" rows="12" data-bind="textInput: formBody" required></textarea>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="et-default" data-bind="checked: formIsDefault">
+                                    <label class="form-check-label" for="et-default">Varsayilan sablon</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Kullanilabilir Degiskenler</h6>
+                                        <p class="text-muted small">Tiklayin veya konu/govdeye yazin</p>
+                                        <div data-bind="foreach: placeholders">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary mb-1 w-100 text-start"
+                                                    data-bind="click: $parent.insertPlaceholder">
+                                                <code data-bind="text: code"></code>
+                                                <small class="text-muted d-block" data-bind="text: label"></small>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Onizleme</h6>
+                                    </div>
+                                    <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
+                                        <div data-bind="html: previewHtml"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span data-bind="text: isEditing() ? 'Guncelle' : 'Kaydet'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/EmailTemplates.js"></script>
+}
