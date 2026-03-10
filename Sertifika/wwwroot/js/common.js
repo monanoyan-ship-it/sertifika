@@ -61,13 +61,17 @@ function apiPost(path, data, isFormData) {
     return $.ajax(options);
 }
 
-function apiPut(path, data) {
-    return $.ajax({
-        url: API_BASE + path,
-        method: 'PUT',
-        data: JSON.stringify(data),
-        contentType: 'application/json'
-    });
+function apiPut(path, data, isFormData) {
+    var options = { url: API_BASE + path, method: 'PUT' };
+    if (isFormData) {
+        options.data = data;
+        options.processData = false;
+        options.contentType = false;
+    } else if (data !== undefined) {
+        options.data = JSON.stringify(data);
+        options.contentType = 'application/json';
+    }
+    return $.ajax(options);
 }
 
 function apiDelete(path) {
