@@ -110,105 +110,105 @@
             Katilimci yok
         </div>
     </div>
-</div>
 
-<!-- Add/Edit Participant Modal -->
-<div class="modal fade" id="participantModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" data-bind="text: isEditingParticipant() ? 'Katilimci Duzenle' : 'Katilimci Ekle'"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Add/Edit Participant Modal -->
+    <div class="modal fade" id="participantModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-bind="text: isEditingParticipant() ? 'Katilimci Duzenle' : 'Katilimci Ekle'"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveParticipant">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ad</label>
+                                <input type="text" class="form-control" data-bind="textInput: participantFirstName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Soyad</label>
+                                <input type="text" class="form-control" data-bind="textInput: participantLastName" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">E-posta</label>
+                            <input type="email" class="form-control" data-bind="textInput: participantEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Firma</label>
+                            <input type="text" class="form-control" data-bind="textInput: participantCompanyName">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span data-bind="text: isEditingParticipant() ? 'Guncelle' : 'Ekle'"></span>
+                        </button>
+                    </div>
+                </form>
             </div>
-            <form data-bind="submit: saveParticipant">
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Ad</label>
-                            <input type="text" class="form-control" data-bind="value: participantForm().firstName" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Soyad</label>
-                            <input type="text" class="form-control" data-bind="value: participantForm().lastName" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">E-posta</label>
-                        <input type="email" class="form-control" data-bind="value: participantForm().email">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Firma</label>
-                        <input type="text" class="form-control" data-bind="value: participantForm().companyName">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <span data-bind="text: isEditingParticipant() ? 'Guncelle' : 'Ekle'"></span>
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
 
-<!-- Excel Upload Modal -->
-<div class="modal fade" id="excelModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Excel Yukle</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form data-bind="submit: uploadExcel">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Excel Dosyasi (.xlsx)</label>
-                        <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls" required>
-                        <div class="form-text">Sutunlar: Ad, Soyad, Email, Firma</div>
+    <!-- Excel Upload Modal -->
+    <div class="modal fade" id="excelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Excel Yukle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: uploadExcel">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Excel Dosyasi (.xlsx)</label>
+                            <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls" required>
+                            <div class="form-text">Sutunlar: Ad, Soyad, Email, Firma</div>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Yukle
-                    </button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            Yukle
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Send to Contact Modal -->
-<div class="modal fade" id="sendContactModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Kisiye Gonder</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Send to Contact Modal -->
+    <div class="modal fade" id="sendContactModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kisiye Gonder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: sendToContact">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Alici Adi</label>
+                            <input type="text" class="form-control" data-bind="textInput: contactName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">E-posta</label>
+                            <input type="email" class="form-control" data-bind="textInput: contactEmail" required>
+                        </div>
+                        <div class="form-text">Tum sertifikalar bu kisiye gonderilecektir.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            Gonder
+                        </button>
+                    </div>
+                </form>
             </div>
-            <form data-bind="submit: sendToContact">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Alici Adi</label>
-                        <input type="text" class="form-control" data-bind="value: contactForm().name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">E-posta</label>
-                        <input type="email" class="form-control" data-bind="value: contactForm().email" required>
-                    </div>
-                    <div class="form-text">Tum sertifikalar bu kisiye gonderilecektir.</div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Gonder
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>

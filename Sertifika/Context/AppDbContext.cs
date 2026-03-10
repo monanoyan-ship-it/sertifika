@@ -20,6 +20,9 @@ public class AppDbContext : DbContext
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<OneDriveAccount> OneDriveAccounts => Set<OneDriveAccount>();
+    public DbSet<SmtpAccount> SmtpAccounts => Set<SmtpAccount>();
+    public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
+    public DbSet<TemplateSignature> TemplateSignatures => Set<TemplateSignature>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +49,17 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(e => e.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<TemplateSignature>(entity =>
+        {
+            entity.HasOne(e => e.Template)
+                .WithMany(t => t.TemplateSignatures)
+                .HasForeignKey(e => e.TemplateId);
+
+            entity.HasOne(e => e.Signature)
+                .WithMany()
+                .HasForeignKey(e => e.SignatureId);
         });
 
         modelBuilder.Entity<Training>(entity =>

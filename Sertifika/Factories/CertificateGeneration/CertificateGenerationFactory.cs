@@ -188,9 +188,20 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             .OrderBy(ts => ts.DisplayOrder)
             .Select(ts => new PdfSignatureInfo
             {
-                Name = ts.Signature.Name,
-                Title = ts.Signature.Title,
-                ImageUrl = ResolveFilePath(ts.Signature.ImageUrl)
+                Name = ts.InstructorName ?? ts.Signature.Name,
+                Title = ts.InstructorTitle ?? ts.Signature.Title,
+                ImageUrl = ResolveFilePath(ts.Signature.ImageUrl),
+                ShowName = ts.ShowName,
+                ShowTitle = ts.ShowTitle,
+                ImageX = ts.ImageX,
+                ImageY = ts.ImageY,
+                ImageWidth = ts.ImageWidth,
+                ImageHeight = ts.ImageHeight,
+                ImageRotation = ts.ImageRotation,
+                NameX = ts.NameX,
+                NameY = ts.NameY,
+                TitleX = ts.TitleX,
+                TitleY = ts.TitleY
             }).ToList();
     }
 

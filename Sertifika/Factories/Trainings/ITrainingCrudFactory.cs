@@ -6,7 +6,7 @@ public interface ITrainingCrudFactory
 {
     Task<IEnumerable<Training>> GetTrainingsAsync();
     Task<Training?> GetTrainingAsync(int id);
-    Task<Training> CreateTrainingAsync(Training training, List<int> signatureIds);
+    Task<Training> CreateTrainingAsync(Training training);
     Task UpdateTrainingAsync(Training training);
     Task<bool> DeleteTrainingAsync(int id);
 }

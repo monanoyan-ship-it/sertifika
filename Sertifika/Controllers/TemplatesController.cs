@@ -28,9 +28,9 @@ public class TemplatesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<CertificateTemplate>> GetTemplate(int id)
     {
-        var template = await _crud.GetTemplateAsync(id);
+        var template = await _crud.GetTemplateWithSignaturesAsync(id);
         if (template == null) return NotFound();
-        return template;
+        return Ok(template);
     }
 
     [HttpPost]
@@ -56,6 +56,16 @@ public class TemplatesController : ControllerBase
     {
         var found = await _crud.DeleteTemplateAsync(id);
         if (!found) return NotFound();
+        return NoContent();
+    }
+
+    [HttpPut("{id}/signatures")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> UpdateSignatures(int id, [FromBody] UpdateTemplateSignaturesRequest request)
+    {
+        var template = await _crud.GetTemplateAsync(id);
+        if (template == null) return NotFound();
+        await _crud.UpdateTemplateSignaturesAsync(id, request.Signatures);
         return NoContent();
     }
 
@@ -89,4 +99,9 @@ public class TemplatesController : ControllerBase
 
         return Ok(new { backgroundImageUrl = template.BackgroundImageUrl });
     }
+}
+
+public class UpdateTemplateSignaturesRequest
+{
+    public List<TemplateSignatureInput> Signatures { get; set; } = new();
 }

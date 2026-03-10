@@ -24,6 +24,22 @@ public class TrainingSignature : BaseEntity
     public Signature Signature { get; set; } = null!;
 
     public int DisplayOrder { get; set; }
+
+    public string? InstructorName { get; set; }
+    public string? InstructorTitle { get; set; }
+
+    public bool ShowName { get; set; } = true;
+    public bool ShowTitle { get; set; } = true;
+
+    public double ImageX { get; set; }
+    public double ImageY { get; set; }
+    public double ImageWidth { get; set; } = 12;
+    public double ImageHeight { get; set; } = 8;
+    public int ImageRotation { get; set; }
+    public double NameX { get; set; }
+    public double NameY { get; set; }
+    public double TitleX { get; set; }
+    public double TitleY { get; set; }
 }
 
 public enum TrainingStatus

@@ -21,6 +21,9 @@ public class TemplateCrudFactory : ITemplateCrudFactory
     public async Task<CertificateTemplate?> GetTemplateAsync(int id)
         => await _templateService.GetByIdAsync(id);
 
+    public async Task<CertificateTemplate?> GetTemplateWithSignaturesAsync(int id)
+        => await _templateService.GetByIdWithSignaturesAsync(id);
+
     public async Task<CertificateTemplate> CreateTemplateAsync(CertificateTemplate template)
     {
         _templateService.Add(template);
@@ -32,6 +35,40 @@ public class TemplateCrudFactory : ITemplateCrudFactory
     {
         template.UpdatedAt = DateTime.UtcNow;
         _templateService.Update(template);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task UpdateTemplateSignaturesAsync(int templateId, List<TemplateSignatureInput> signatures)
+    {
+        var template = await _templateService.GetByIdWithSignaturesAsync(templateId);
+        if (template == null) return;
+
+        _templateService.RemoveTemplateSignatures(template.TemplateSignatures);
+
+        for (int i = 0; i < signatures.Count; i++)
+        {
+            var input = signatures[i];
+            _templateService.AddTemplateSignature(new TemplateSignature
+            {
+                TemplateId = templateId,
+                SignatureId = input.SignatureId,
+                DisplayOrder = i,
+                InstructorName = input.InstructorName,
+                InstructorTitle = input.InstructorTitle,
+                ShowName = input.ShowName,
+                ShowTitle = input.ShowTitle,
+                ImageX = input.ImageX,
+                ImageY = input.ImageY,
+                ImageWidth = input.ImageWidth,
+                ImageHeight = input.ImageHeight,
+                ImageRotation = input.ImageRotation,
+                NameX = input.NameX,
+                NameY = input.NameY,
+                TitleX = input.TitleX,
+                TitleY = input.TitleY
+            });
+        }
+
         await _unitOfWork.SaveChangesAsync();
     }
 

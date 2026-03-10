@@ -57,7 +57,7 @@ public class TrainingsController : ControllerBase
             TemplateId = request.TemplateId
         };
 
-        var created = await _crud.CreateTrainingAsync(training, request.SignatureIds);
+        var created = await _crud.CreateTrainingAsync(training);
         return CreatedAtAction(nameof(GetTraining), new { id = created.Id }, created);
     }
 
@@ -198,5 +198,4 @@ public class CreateTrainingRequest
     public DateTime TrainingDate { get; set; }
     public string? CompanyName { get; set; }
     public int TemplateId { get; set; }
-    public List<int> SignatureIds { get; set; } = new();
 }

@@ -9,8 +9,12 @@ function TrainingDetailViewModel() {
     self.isEditingParticipant = ko.observable(false);
     self.editingParticipantId = null;
 
-    self.participantForm = ko.observable({ firstName: '', lastName: '', email: '', companyName: '' });
-    self.contactForm = ko.observable({ name: '', email: '' });
+    self.participantFirstName = ko.observable('');
+    self.participantLastName = ko.observable('');
+    self.participantEmail = ko.observable('');
+    self.participantCompanyName = ko.observable('');
+    self.contactName = ko.observable('');
+    self.contactEmail = ko.observable('');
 
     var participantModal, excelModal, sendContactModal;
 
@@ -48,26 +52,32 @@ function TrainingDetailViewModel() {
     self.openParticipantModal = function() {
         self.isEditingParticipant(false);
         self.editingParticipantId = null;
-        self.participantForm({ firstName: '', lastName: '', email: '', companyName: '' });
+        self.participantFirstName('');
+        self.participantLastName('');
+        self.participantEmail('');
+        self.participantCompanyName('');
         participantModal.show();
     };
 
     self.openEditParticipantModal = function(p) {
         self.isEditingParticipant(true);
         self.editingParticipantId = p.id;
-        self.participantForm({
-            firstName: p.firstName,
-            lastName: p.lastName,
-            email: p.email || '',
-            companyName: p.companyName || ''
-        });
+        self.participantFirstName(p.firstName);
+        self.participantLastName(p.lastName);
+        self.participantEmail(p.email || '');
+        self.participantCompanyName(p.companyName || '');
         participantModal.show();
     };
 
     self.saveParticipant = function() {
         self.isSaving(true);
-        var data = self.participantForm();
-        data.trainingId = parseInt(trainingId);
+        var data = {
+            firstName: self.participantFirstName(),
+            lastName: self.participantLastName(),
+            email: self.participantEmail(),
+            companyName: self.participantCompanyName(),
+            trainingId: parseInt(trainingId)
+        };
 
         var promise;
         if (self.isEditingParticipant()) {
@@ -82,10 +92,11 @@ function TrainingDetailViewModel() {
                 participantModal.hide();
                 toastr.success(self.isEditingParticipant() ? 'Katilimci guncellendi' : 'Katilimci eklendi');
                 self.loadParticipants();
-                self.isSaving(false);
             })
             .fail(function(xhr) {
                 toastr.error('Hata: ' + (xhr.responseText || 'Islem basarisiz'));
+            })
+            .always(function() {
                 self.isSaving(false);
             });
     };
@@ -121,10 +132,11 @@ function TrainingDetailViewModel() {
                 excelModal.hide();
                 toastr.success('Katilimcilar yuklendi');
                 self.loadParticipants();
-                self.isSaving(false);
             })
             .fail(function(xhr) {
                 toastr.error('Hata: ' + (xhr.responseText || 'Yuklenemedi'));
+            })
+            .always(function() {
                 self.isSaving(false);
             });
     };
@@ -188,20 +200,26 @@ function TrainingDetailViewModel() {
     };
 
     self.openSendToContactModal = function() {
-        self.contactForm({ name: '', email: '' });
+        self.contactName('');
+        self.contactEmail('');
         sendContactModal.show();
     };
 
     self.sendToContact = function() {
         self.isSaving(true);
-        apiPost('/trainings/' + trainingId + '/send-to-contact', self.contactForm())
+        var body = {
+            name: self.contactName(),
+            email: self.contactEmail()
+        };
+        apiPost('/trainings/' + trainingId + '/send-to-contact', body)
             .done(function() {
                 sendContactModal.hide();
                 toastr.success('Sertifikalar gonderildi');
-                self.isSaving(false);
             })
             .fail(function(xhr) {
                 toastr.error('Hata: ' + (xhr.responseText || 'Gonderilemedi'));
+            })
+            .always(function() {
                 self.isSaving(false);
             });
     };

@@ -4,11 +4,23 @@ function TrainingsViewModel() {
     self.trainings = ko.observableArray([]);
     self.isLoading = ko.observable(true);
     self.isSaving = ko.observable(false);
+    self.isEditing = ko.observable(false);
+    self.editingId = null;
 
-    self.formData = ko.observable({ name: '', description: '', trainingDate: '', companyName: '', templateId: null });
+    self.formName = ko.observable('');
+    self.formDescription = ko.observable('');
+    self.formTrainingDate = ko.observable('');
+    self.formCompanyName = ko.observable('');
+    self.formTemplateId = ko.observable(null);
     self.availableTemplates = ko.observableArray([]);
-    self.availableSignatures = ko.observableArray([]);
-    self.selectedSignatureIds = ko.observableArray([]);
+
+    self.selectedTemplateSignatures = ko.computed(function() {
+        var tid = self.formTemplateId();
+        if (!tid) return [];
+        var tpl = self.availableTemplates().find(function(t) { return t.id === parseInt(tid); });
+        if (!tpl || !tpl.templateSignatures) return [];
+        return tpl.templateSignatures.sort(function(a, b) { return a.displayOrder - b.displayOrder; });
+    });
 
     var formModal;
 
@@ -36,44 +48,88 @@ function TrainingsViewModel() {
     };
 
     self.openCreateModal = function() {
-        self.formData({ name: '', description: '', trainingDate: '', companyName: '', templateId: null });
-        self.selectedSignatureIds([]);
+        self.isEditing(false);
+        self.editingId = null;
+        self.formName('');
+        self.formDescription('');
+        self.formTrainingDate('');
+        self.formCompanyName('');
+        self.formTemplateId(null);
 
-        $.when(apiGet('/templates'), apiGet('/signatures'))
-            .done(function(tplRes, sigRes) {
-                self.availableTemplates(tplRes[0]);
-                self.availableSignatures(sigRes[0]);
-                if (tplRes[0].length > 0) {
-                    self.formData().templateId = tplRes[0][0].id;
+        apiGet('/templates')
+            .done(function(data) {
+                self.availableTemplates(data);
+                if (data.length > 0) {
+                    self.formTemplateId(data[0].id);
                 }
                 formModal.show();
             })
-            .fail(function() { toastr.error('Veriler yuklenemedi'); });
+            .fail(function() { toastr.error('Sablonlar yuklenemedi'); });
+    };
+
+    self.openEditModal = function(training) {
+        self.isEditing(true);
+        self.editingId = training.id;
+        self.formName(training.name || '');
+        self.formDescription(training.description || '');
+        self.formTrainingDate(training.trainingDate ? training.trainingDate.substring(0, 10) : '');
+        self.formCompanyName(training.companyName || '');
+
+        apiGet('/templates')
+            .done(function(data) {
+                self.availableTemplates(data);
+                self.formTemplateId(training.templateId);
+                formModal.show();
+            })
+            .fail(function() { toastr.error('Sablonlar yuklenemedi'); });
     };
 
     self.saveTraining = function() {
         self.isSaving(true);
-        var data = self.formData();
         var body = {
-            name: data.name,
-            description: data.description,
-            trainingDate: data.trainingDate + 'T00:00:00Z',
-            companyName: data.companyName,
-            templateId: parseInt(data.templateId),
-            signatureIds: self.selectedSignatureIds().map(function(id) { return parseInt(id); })
+            name: self.formName(),
+            description: self.formDescription(),
+            trainingDate: self.formTrainingDate() + 'T00:00:00Z',
+            companyName: self.formCompanyName(),
+            templateId: parseInt(self.formTemplateId())
         };
 
-        apiPost('/trainings', body)
+        var promise;
+        if (self.isEditing()) {
+            body.id = self.editingId;
+            promise = apiPut('/trainings/' + self.editingId, body);
+        } else {
+            promise = apiPost('/trainings', body);
+        }
+
+        promise
             .done(function() {
                 formModal.hide();
-                toastr.success('Egitim olusturuldu');
+                toastr.success(self.isEditing() ? 'Egitim guncellendi' : 'Egitim olusturuldu');
                 self.loadData();
-                self.isSaving(false);
             })
             .fail(function(xhr) {
-                toastr.error('Hata: ' + (xhr.responseText || 'Egitim olusturulamadi'));
+                toastr.error('Hata: ' + (xhr.responseText || 'Islem basarisiz'));
+            })
+            .always(function() {
                 self.isSaving(false);
             });
+    };
+
+    self.goToDetail = function(training) {
+        window.location.href = '/Panel/TrainingDetail/' + training.id;
+    };
+
+    self.deleteTraining = function(training) {
+        showConfirm('Egitimi silmek istiyor musunuz?').then(function(ok) {
+            if (!ok) return;
+            apiDelete('/trainings/' + training.id)
+                .done(function() {
+                    toastr.success('Egitim silindi');
+                    self.loadData();
+                })
+                .fail(function() { toastr.error('Silinemedi'); });
+        });
     };
 
     $(document).ready(function() {

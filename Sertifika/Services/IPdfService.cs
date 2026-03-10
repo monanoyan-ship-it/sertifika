@@ -29,6 +29,17 @@ public class PdfSignatureInfo
     public string Name { get; set; } = string.Empty;
     public string? Title { get; set; }
     public string? ImageUrl { get; set; }
+    public bool ShowName { get; set; } = true;
+    public bool ShowTitle { get; set; } = true;
+    public double ImageX { get; set; }
+    public double ImageY { get; set; }
+    public double ImageWidth { get; set; } = 12;
+    public double ImageHeight { get; set; } = 8;
+    public int ImageRotation { get; set; }
+    public double NameX { get; set; }
+    public double NameY { get; set; }
+    public double TitleX { get; set; }
+    public double TitleY { get; set; }
 }
 
 public class PdfGenerateRequest

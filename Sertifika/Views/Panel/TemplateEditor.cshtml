@@ -16,9 +16,25 @@
             <button class="btn btn-sm btn-outline-success" data-bind="click: addQrCodeField">
                 <i class="bi bi-qr-code me-1"></i>QR Kod
             </button>
-            <button class="btn btn-sm btn-outline-warning" data-bind="click: addSignatureField">
-                <i class="bi bi-pen me-1"></i>Imza Ekle
-            </button>
+            <!-- Imza Ekle dropdown -->
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown"
+                        data-bind="disable: addableSignatures().length === 0">
+                    <i class="bi bi-pen me-1"></i>Imza Ekle
+                </button>
+                <ul class="dropdown-menu">
+                    <!-- ko foreach: addableSignatures -->
+                    <li>
+                        <a class="dropdown-item" href="#" data-bind="click: $parent.addSignature">
+                            <i class="bi bi-pen me-1"></i><span data-bind="text: name + ' (' + title + ')'"></span>
+                        </a>
+                    </li>
+                    <!-- /ko -->
+                    <!-- ko if: addableSignatures().length === 0 -->
+                    <li><span class="dropdown-item text-muted">Tum imzalar eklenmis</span></li>
+                    <!-- /ko -->
+                </ul>
+            </div>
             <button class="btn btn-primary btn-sm" data-bind="click: saveTemplate, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                 <i class="bi bi-floppy me-1" data-bind="visible: !isSaving()"></i>Kaydet
@@ -33,10 +49,15 @@
         <!-- Canvas -->
         <div class="col-md-9">
             <div class="border rounded bg-white position-relative overflow-hidden" id="editor-canvas"
-                 data-bind="css: { 'editor-landscape': orientation() === '0', 'editor-portrait': orientation() === '1' }">
+                 data-bind="css: { 'editor-landscape': orientation() === '0', 'editor-portrait': orientation() === '1' }, click: function(d,e) { if (e.target.id === 'editor-canvas' || e.target.id === 'editor-bg') clearSelection(); }">
                 <img id="editor-bg" class="position-absolute w-100 h-100" style="object-fit: cover; top:0; left:0;"
                      data-bind="attr: { src: backgroundPreview }, visible: backgroundPreview()" alt="">
-                <!-- Fields rendered by JS -->
+            </div>
+            <!-- Legend -->
+            <div class="mt-2 d-flex gap-3 small text-muted" data-bind="visible: templateSignatures().length > 0">
+                <span><i class="bi bi-square-fill" style="color:#e67e22"></i> Imza Gorseli</span>
+                <span><i class="bi bi-square-fill" style="color:#27ae60"></i> Egitimci Adi</span>
+                <span><i class="bi bi-square-fill" style="color:#8e44ad"></i> Egitimci Unvani</span>
             </div>
         </div>
 
@@ -67,7 +88,7 @@
                 </div>
             </div>
 
-            <!-- Selected Field Properties -->
+            <!-- Selected Layout Field Properties -->
             <div class="card shadow-sm mt-3" data-bind="visible: selectedField()">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <strong>Secili Alan</strong>
@@ -79,7 +100,7 @@
                     <div class="mb-2">
                         <label class="form-label">Tip</label>
                         <span class="badge" data-bind="text: $parent.getFieldTypeLabel(fieldType),
-                            css: { 'bg-secondary': fieldType === 'static', 'bg-primary': fieldType === 'dynamic', 'bg-success': fieldType === 'qrcode', 'bg-warning text-dark': fieldType === 'signature' }"></span>
+                            css: { 'bg-secondary': fieldType === 'static', 'bg-primary': fieldType === 'dynamic', 'bg-success': fieldType === 'qrcode' }"></span>
                     </div>
                     <!-- ko if: fieldType === 'static' -->
                     <div class="mb-2">
@@ -99,20 +120,7 @@
                         </select>
                     </div>
                     <!-- /ko -->
-                    <!-- ko if: fieldType === 'signature' -->
-                    <div class="mb-2">
-                        <label class="form-label">Imza</label>
-                        <select class="form-select form-select-sm" data-bind="options: $parent.availableSignatures, optionsText: $parent.signatureOptionText, optionsValue: 'id', value: signatureId, event: { change: $parent.onFieldChanged }"></select>
-                        <div class="mt-1" data-bind="visible: signatureId">
-                            <!-- ko with: $parent.getSignatureById(signatureId) -->
-                            <!-- ko if: imageUrl -->
-                            <img data-bind="attr: { src: imageUrl }" class="img-fluid border rounded" style="max-height: 50px;" alt="">
-                            <!-- /ko -->
-                            <!-- /ko -->
-                        </div>
-                    </div>
-                    <!-- /ko -->
-                    <!-- ko if: fieldType !== 'signature' && fieldType !== 'qrcode' -->
+                    <!-- ko if: fieldType !== 'qrcode' -->
                     <div class="row mb-2">
                         <div class="col-6">
                             <label class="form-label">Font</label>
@@ -154,11 +162,59 @@
                     <!-- /ko -->
                 </div>
             </div>
+
+            <!-- Selected Signature Properties -->
+            <div class="card shadow-sm mt-3" data-bind="visible: selectedSig()">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Imza Ayarlari</strong>
+                    <div>
+                        <span class="badge me-1" data-bind="text: selectedSigPart() === 'sig-image' ? 'Gorsel' : (selectedSigPart() === 'sig-name' ? 'Ad' : 'Unvan'),
+                            style: { backgroundColor: selectedSigPart() === 'sig-image' ? '#e67e22' : (selectedSigPart() === 'sig-name' ? '#27ae60' : '#8e44ad') }"></span>
+                        <button class="btn btn-sm btn-outline-danger" data-bind="click: removeSelectedSignature" title="Imzayi kaldir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" data-bind="with: selectedSig">
+                    <div class="mb-2">
+                        <span class="text-muted small" data-bind="text: signature.name + ' — ' + signature.title"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Egitimci Adi</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="textInput: instructorName">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Egitimci Unvani</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="textInput: instructorTitle">
+                    </div>
+                    <div class="d-flex gap-3 mb-2">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" data-bind="checked: showName">
+                            <label class="form-check-label">Ad Goster</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" data-bind="checked: showTitle">
+                            <label class="form-check-label">Unvan Goster</label>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <button class="btn btn-sm btn-outline-secondary" data-bind="click: $parent.rotateSelectedSignature">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Gorseli Dondir
+                        </button>
+                        <span class="text-muted small ms-1" data-bind="text: (imageRotation() * 90) + '°'"></span>
+                    </div>
+                    <!-- ko if: signature.imageUrl -->
+                    <div class="text-center mt-2">
+                        <img data-bind="attr: { src: signature.imageUrl }" class="img-fluid border rounded" style="max-height: 50px;" alt="">
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>var templateId = @(templateId != null ? templateId : "null");</script>
-    <script src="~/js/TemplateEditor.js"></script>
+    <script src="~/js/TemplateEditor.js" asp-append-version="true"></script>
 }

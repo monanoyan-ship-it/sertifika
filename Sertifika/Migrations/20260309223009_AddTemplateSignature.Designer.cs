@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Sertifika.Context;
@@ -11,9 +12,11 @@ using Sertifika.Context;
 namespace Sertifika.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309223009_AddTemplateSignature")]
+    partial class AddTemplateSignature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -595,40 +598,7 @@ namespace Sertifika.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
-                    b.Property<double>("ImageHeight")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("ImageRotation")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("ImageWidth")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("ImageX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("ImageY")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("InstructorName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("InstructorTitle")
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<double>("NameX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("NameY")
-                        .HasColumnType("double precision");
-
-                    b.Property<bool>("ShowName")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("ShowTitle")
                         .HasColumnType("boolean");
 
                     b.Property<int>("SignatureId")
@@ -636,12 +606,6 @@ namespace Sertifika.Migrations
 
                     b.Property<int>("TemplateId")
                         .HasColumnType("integer");
-
-                    b.Property<double>("TitleX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TitleY")
-                        .HasColumnType("double precision");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -712,50 +676,11 @@ namespace Sertifika.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
-                    b.Property<double>("ImageHeight")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("ImageRotation")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("ImageWidth")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("ImageX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("ImageY")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("InstructorName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("InstructorTitle")
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<double>("NameX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("NameY")
-                        .HasColumnType("double precision");
-
-                    b.Property<bool>("ShowName")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("ShowTitle")
                         .HasColumnType("boolean");
 
                     b.Property<int>("SignatureId")
                         .HasColumnType("integer");
-
-                    b.Property<double>("TitleX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TitleY")
-                        .HasColumnType("double precision");
 
                     b.Property<int>("TrainingId")
                         .HasColumnType("integer");

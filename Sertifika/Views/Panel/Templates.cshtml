@@ -21,11 +21,26 @@
                     <h5 class="card-title" data-bind="text: name"></h5>
                     <p class="text-muted" data-bind="text: description || ''"></p>
                     <span class="badge bg-secondary" data-bind="text: orientation === 0 ? 'Yatay' : 'Dikey'"></span>
+                    <!-- ko if: templateSignatures && templateSignatures.length > 0 -->
+                    <div class="mt-2">
+                        <!-- ko foreach: templateSignatures -->
+                        <span class="badge bg-light text-dark border me-1">
+                            <i class="bi bi-pen me-1"></i><span data-bind="text: (instructorName || signature.name) + ' - ' + (instructorTitle || signature.title)"></span>
+                        </span>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko ifnot: templateSignatures && templateSignatures.length > 0 -->
+                    <div class="mt-2 text-muted small"><i class="bi bi-info-circle me-1"></i>Imza atanmamis</div>
+                    <!-- /ko -->
                 </div>
                 <div class="card-footer bg-transparent d-flex gap-2">
                     <a class="btn btn-sm btn-outline-primary" data-bind="attr: { href: '/Panel/TemplateEditor/' + id }">
                         <i class="bi bi-pencil me-1"></i>Duzenle
                     </a>
+                    <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.openSignatureModal">
+                        <i class="bi bi-pen me-1"></i>Imzalar
+                    </button>
                     <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteTemplate">
                         <i class="bi bi-trash me-1"></i>Sil
                     </button>
@@ -37,6 +52,53 @@
     <div data-bind="visible: !isLoading() && templates().length === 0" class="text-center py-5 text-muted">
         <i class="bi bi-layout-text-window display-1"></i>
         <p class="mt-2">Henuz sablon yok.</p>
+    </div>
+
+    <!-- Signature Assignment Modal -->
+    <div class="modal fade" id="signatureModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Imza Atama - <span data-bind="text: editingTemplateName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveSignatures">
+                    <div class="modal-body">
+                        <p class="text-muted small">Imzalari secin ve egitimci bilgilerini girin. Konumlandirma sablon editöründen yapilir.</p>
+                        <div data-bind="foreach: signatureRows">
+                            <div class="border rounded p-2 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" data-bind="checked: selected, attr: { id: 'sig-' + id }">
+                                    <label class="form-check-label fw-bold" data-bind="text: name + ' (' + title + ')', attr: { for: 'sig-' + id }"></label>
+                                </div>
+                                <!-- ko if: selected -->
+                                <div class="ps-4 mt-2">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label small">Egitimci Adi</label>
+                                            <input type="text" class="form-control form-control-sm" data-bind="textInput: instructorName">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small">Egitimci Unvani</label>
+                                            <input type="text" class="form-control form-control-sm" data-bind="textInput: instructorTitle">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- /ko -->
+                            </div>
+                        </div>
+                        <p data-bind="visible: signatureRows().length === 0" class="text-muted">Imza bulunamadi. Once imza ekleyin.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
