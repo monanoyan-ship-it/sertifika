@@ -34,6 +34,22 @@ public class SignatureCrudFactory : ISignatureCrudFactory
         return signature;
     }
 
+    public async Task<List<Signature>> BulkCreateSignaturesAsync(List<(string name, string title, string imageUrl)> items)
+    {
+        var signatures = items.Select(i => new Signature
+        {
+            Name = i.name,
+            Title = i.title,
+            ImageUrl = i.imageUrl
+        }).ToList();
+
+        foreach (var sig in signatures)
+            _signatureService.Add(sig);
+
+        await _unitOfWork.SaveChangesAsync();
+        return signatures;
+    }
+
     public async Task UpdateSignatureAsync(Signature signature)
     {
         signature.UpdatedAt = DateTime.UtcNow;

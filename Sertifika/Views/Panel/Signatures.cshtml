@@ -5,74 +5,174 @@
 <div class="container mt-4" id="signaturesApp">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Imza Kutuphanesi</h2>
-        <button class="btn btn-primary" data-bind="click: openCreateModal">
-            <i class="bi bi-plus-circle me-1"></i> Yeni Imza
-        </button>
+        <div class="btn-group">
+            <button class="btn btn-primary" data-bind="click: openCreateModal">
+                <i class="bi bi-plus-circle me-1"></i> Yeni Imza
+            </button>
+            <button class="btn btn-outline-primary" data-bind="click: openBulkModal">
+                <i class="bi bi-collection me-1"></i> Toplu Ekle
+            </button>
+        </div>
+    </div>
+
+    <div data-bind="visible: !isLoading() && signatures().length > 0" class="mb-3">
+        <input type="text" class="form-control" placeholder="Imza ara..." data-bind="textInput: searchQuery">
     </div>
 
     <div data-bind="visible: isLoading" class="text-center py-5">
         <div class="spinner-border text-primary"></div>
     </div>
 
-    <div class="row g-3" data-bind="foreach: signatures, visible: !isLoading()">
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <!-- ko if: imageUrl -->
-                    <img data-bind="attr: { src: imageUrl }" class="img-fluid mb-2" style="max-height: 80px;" alt="">
-                    <!-- /ko -->
-                    <!-- ko ifnot: imageUrl -->
-                    <i class="bi bi-pen display-4 text-muted"></i>
-                    <!-- /ko -->
-                    <h5 class="card-title mt-2" data-bind="text: name"></h5>
-                    <p class="text-muted" data-bind="text: title"></p>
-                </div>
-                <div class="card-footer bg-transparent text-end">
-                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteSignature">
-                        <i class="bi bi-trash me-1"></i>Sil
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="table-responsive" data-bind="visible: !isLoading() && filteredSignatures().length > 0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 60px;">Gorsel</th>
+                    <th>Ad Soyad</th>
+                    <th>Unvan</th>
+                    <th style="width: 100px;" class="text-end">Islem</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: filteredSignatures">
+                <tr>
+                    <td>
+                        <!-- ko if: imageUrl -->
+                        <img data-bind="attr: { src: imageUrl }" style="max-height: 32px;" alt="">
+                        <!-- /ko -->
+                        <!-- ko ifnot: imageUrl -->
+                        <i class="bi bi-pen text-muted"></i>
+                        <!-- /ko -->
+                    </td>
+                    <td data-bind="text: name"></td>
+                    <td class="text-muted" data-bind="text: title"></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" data-bind="click: $parent.openEditModal" title="Duzenle">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteSignature" title="Sil">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div data-bind="visible: !isLoading() && signatures().length > 0 && filteredSignatures().length === 0" class="text-center py-4 text-muted">
+        <p class="mb-0">Aramayla eslesen imza bulunamadi.</p>
     </div>
 
     <div data-bind="visible: !isLoading() && signatures().length === 0" class="text-center py-5 text-muted">
         <i class="bi bi-pen display-1"></i>
         <p class="mt-2">Henuz imza yok.</p>
     </div>
-</div>
 
-<!-- Create Modal -->
-<div class="modal fade" id="createModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Yeni Imza</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Create Modal -->
+    <div class="modal fade" id="createModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-bind="text: isEditing() ? 'Imza Duzenle' : 'Yeni Imza'"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveSignature">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Ad Soyad</label>
+                            <input type="text" class="form-control" data-bind="textInput: formName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Unvan</label>
+                            <input type="text" class="form-control" data-bind="textInput: formTitle">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" data-bind="text: isEditing() ? 'Imza Gorseli (degistirmek icin secin)' : 'Imza Gorseli'"></label>
+                            <input type="file" class="form-control" id="sig-file" accept="image/*" data-bind="attr: { required: !isEditing() }">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span data-bind="text: isEditing() ? 'Guncelle' : 'Kaydet'"></span>
+                        </button>
+                    </div>
+                </form>
             </div>
-            <form data-bind="submit: saveSignature">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Ad Soyad</label>
-                        <input type="text" class="form-control" data-bind="value: formData().name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Unvan</label>
-                        <input type="text" class="form-control" data-bind="value: formData().title">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Imza Gorseli</label>
-                        <input type="file" class="form-control" id="sig-file" accept="image/*" required>
-                    </div>
+        </div>
+    </div>
+
+    <!-- Bulk Modal -->
+    <div class="modal fade" id="bulkModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Toplu Imza Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                    <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Kaydet
-                    </button>
-                </div>
-            </form>
+                <form data-bind="submit: saveBulk">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Unvan (tum imzalar icin)</label>
+                            <input type="text" class="form-control" data-bind="textInput: bulkTitle" placeholder="Orn: Egitmen" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Dosya Sec (coklu)</label>
+                                <input type="file" class="form-control" id="bulk-files" accept="image/*" multiple
+                                       data-bind="event: { change: handleBulkFiles }">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Klasor Sec</label>
+                                <input type="file" class="form-control" id="bulk-folder" accept="image/*" webkitdirectory
+                                       data-bind="event: { change: handleBulkFiles }">
+                            </div>
+                        </div>
+
+                        <!-- ko if: bulkFiles().length > 0 -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong data-bind="text: bulkFiles().length + ' dosya secildi'"></strong>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bind="click: clearBulkFiles">
+                                <i class="bi bi-x-circle me-1"></i>Temizle
+                            </button>
+                        </div>
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Dosya</th>
+                                        <th>Ad Soyad</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-bind="foreach: bulkFiles">
+                                    <tr>
+                                        <td class="small text-muted" data-bind="text: file.name"></td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm"
+                                                   data-bind="textInput: name" required>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    data-bind="click: $parent.removeBulkFile">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isBulkSaving() || bulkFiles().length === 0">
+                            <span data-bind="visible: isBulkSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span data-bind="text: 'Kaydet (' + bulkFiles().length + ')'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
