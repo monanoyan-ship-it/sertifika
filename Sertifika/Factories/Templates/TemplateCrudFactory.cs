@@ -65,7 +65,9 @@ public class TemplateCrudFactory : ITemplateCrudFactory
                 NameX = input.NameX,
                 NameY = input.NameY,
                 TitleX = input.TitleX,
-                TitleY = input.TitleY
+                TitleY = input.TitleY,
+                NameFontSize = input.NameFontSize,
+                TitleFontSize = input.TitleFontSize
             });
         }
 

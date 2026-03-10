@@ -3,6 +3,7 @@ namespace Sertifika.Entities;
 public class Training : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public DateTime TrainingDate { get; set; }
     public string? CompanyName { get; set; }
@@ -40,6 +41,8 @@ public class TrainingSignature : BaseEntity
     public double NameY { get; set; }
     public double TitleX { get; set; }
     public double TitleY { get; set; }
+    public int NameFontSize { get; set; } = 8;
+    public int TitleFontSize { get; set; } = 7;
 }
 
 public enum TrainingStatus

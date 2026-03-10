@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Sertifika.Entities;
 using Sertifika.EntityServices;
 using Sertifika.Infrastructure;
@@ -11,6 +12,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 {
     private readonly ITrainingEntityService _trainingService;
     private readonly IParticipantEntityService _participantService;
+    private readonly ITemplateEntityService _templateService;
     private readonly IPdfService _pdfService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IWebHostEnvironment _env;
@@ -18,12 +20,14 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
     public CertificateGenerationFactory(
         ITrainingEntityService trainingService,
         IParticipantEntityService participantService,
+        ITemplateEntityService templateService,
         IPdfService pdfService,
         IUnitOfWork unitOfWork,
         IWebHostEnvironment env)
     {
         _trainingService = trainingService;
         _participantService = participantService;
+        _templateService = templateService;
         _pdfService = pdfService;
         _unitOfWork = unitOfWork;
         _env = env;
@@ -43,7 +47,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
         var template = training.Template;
         var layout = ParseLayout(template.LayoutJson);
-        var signatures = BuildSignatureList(training);
+        var signatures = await BuildSignatureListAsync(training);
 
         var outputDir = Path.Combine(
             _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
@@ -99,7 +103,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
         var template = training.Template;
         var layout = ParseLayout(template.LayoutJson);
-        var signatures = BuildSignatureList(training);
+        var signatures = await BuildSignatureListAsync(training);
 
         Dictionary<string, string> dynamicValues;
         if (participantId.HasValue)
@@ -115,7 +119,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             dynamicValues = new Dictionary<string, string>
             {
                 ["HolderName"] = "Ornek Ad Soyad",
-                ["TrainingName"] = training.Name,
+                ["TrainingName"] = training.DisplayName ?? training.Name,
                 ["TrainingDate"] = training.TrainingDate.ToString("dd.MM.yyyy"),
                 ["CompanyName"] = training.CompanyName ?? "",
                 ["CertificateNo"] = "CERT-ONIZLEME-001",
@@ -163,7 +167,8 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
     private List<PdfFieldLayout> ParseLayout(string layoutJson)
     {
-        var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson) ?? new();
+        var opts = new JsonSerializerOptions { NumberHandling = JsonNumberHandling.AllowReadingFromString };
+        var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson, opts) ?? new();
         return fields.Select(f => new PdfFieldLayout
         {
             Type = f.FieldType == "dynamic" ? "dynamic" : (f.DynamicKey == "QrCode" ? "qrcode" : "static"),
@@ -173,7 +178,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             Y = f.Y,
             Width = f.Width,
             Height = f.Height,
-            FontFamily = f.FontFamily == "Arial" ? "Helvetica" : f.FontFamily,
+            FontFamily = f.FontFamily,
             FontSize = f.FontSize,
             FontColor = f.FontColor,
             IsBold = f.IsBold,
@@ -182,9 +187,43 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         }).ToList();
     }
 
-    private List<PdfSignatureInfo> BuildSignatureList(Training training)
+    private async Task<List<PdfSignatureInfo>> BuildSignatureListAsync(Training training)
     {
-        return training.TrainingSignatures
+        // If training has its own signatures with positions, use them
+        var trainingSignatures = training.TrainingSignatures
+            .Where(ts => ts.IsActive)
+            .OrderBy(ts => ts.DisplayOrder)
+            .ToList();
+
+        if (trainingSignatures.Count > 0 && trainingSignatures.Any(ts => ts.ImageX != 0 || ts.ImageY != 0))
+        {
+            return trainingSignatures.Select(ts => new PdfSignatureInfo
+            {
+                Name = ts.InstructorName ?? ts.Signature.Name,
+                Title = ts.InstructorTitle ?? ts.Signature.Title,
+                ImageUrl = ResolveFilePath(ts.Signature.ImageUrl),
+                ShowName = ts.ShowName,
+                ShowTitle = ts.ShowTitle,
+                ImageX = ts.ImageX,
+                ImageY = ts.ImageY,
+                ImageWidth = ts.ImageWidth,
+                ImageHeight = ts.ImageHeight,
+                ImageRotation = ts.ImageRotation,
+                NameX = ts.NameX,
+                NameY = ts.NameY,
+                TitleX = ts.TitleX,
+                TitleY = ts.TitleY,
+                NameFontSize = ts.NameFontSize,
+                TitleFontSize = ts.TitleFontSize
+            }).ToList();
+        }
+
+        // Fallback: use template signatures (training may have been created before signatures were configured)
+        var template = await _templateService.GetByIdWithSignaturesAsync(training.TemplateId);
+        if (template?.TemplateSignatures == null) return new();
+
+        return template.TemplateSignatures
+            .Where(ts => ts.IsActive)
             .OrderBy(ts => ts.DisplayOrder)
             .Select(ts => new PdfSignatureInfo
             {
@@ -201,7 +240,9 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
                 NameX = ts.NameX,
                 NameY = ts.NameY,
                 TitleX = ts.TitleX,
-                TitleY = ts.TitleY
+                TitleY = ts.TitleY,
+                NameFontSize = ts.NameFontSize,
+                TitleFontSize = ts.TitleFontSize
             }).ToList();
     }
 
@@ -210,7 +251,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         return new Dictionary<string, string>
         {
             ["HolderName"] = $"{participant.FirstName} {participant.LastName}",
-            ["TrainingName"] = training.Name,
+            ["TrainingName"] = training.DisplayName ?? training.Name,
             ["TrainingDate"] = training.TrainingDate.ToString("dd.MM.yyyy"),
             ["CompanyName"] = participant.CompanyName ?? training.CompanyName ?? "",
             ["CertificateNo"] = certNumber,

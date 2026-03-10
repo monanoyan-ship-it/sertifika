@@ -66,6 +66,29 @@
                 <button class="btn btn-sm btn-outline-success" data-bind="click: openExcelModal">
                     <i class="bi bi-file-earmark-excel me-1"></i>Excel Yukle
                 </button>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#excelHelpInfo" title="Excel formati hakkinda bilgi">
+                    <i class="bi bi-info-circle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="collapse mb-3" id="excelHelpInfo">
+            <div class="card card-body small py-2 px-3">
+                <p class="mb-1"><strong>Excel dosyaniz 4 sutundan olusmalidir:</strong></p>
+                <table class="table table-sm table-bordered mb-1" style="font-size: 0.8rem;">
+                    <thead class="table-light">
+                        <tr><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr class="text-muted"><td>Ad</td><td>Soyad</td><td>Email</td><td>Firma</td></tr>
+                        <tr><td>Ahmet</td><td>Yilmaz</td><td>ahmet@firma.com</td><td>ABC Ltd.</td></tr>
+                        <tr><td>Ayse</td><td>Demir</td><td>ayse@firma.com</td><td>XYZ A.S.</td></tr>
+                    </tbody>
+                </table>
+                <ul class="mb-0 ps-3" style="font-size: 0.75rem;">
+                    <li>Ilk satir baslik satiri olabilir (opsiyonel, otomatik algilanir)</li>
+                    <li>Yalnizca <strong>Firma</strong> sutunu bos birakilabilir</li>
+                    <li>Bos satirlar otomatik atlanir</li>
+                </ul>
             </div>
         </div>
 
@@ -165,7 +188,6 @@
                         <div class="mb-3">
                             <label class="form-label">Excel Dosyasi (.xlsx)</label>
                             <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls" required>
-                            <div class="form-text">Sutunlar: Ad, Soyad, Email, Firma</div>
                         </div>
                     </div>
                     <div class="modal-footer">

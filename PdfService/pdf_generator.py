@@ -35,15 +35,27 @@ _register_fonts()
 
 
 def _resolve_font(font_family: str, is_bold: bool, is_italic: bool) -> str:
-    """Resolve font name with bold/italic variants for built-in fonts."""
-    base_fonts = {
+    """Resolve font name with bold/italic variants."""
+    # Custom TTF font variants (Turkish character support)
+    custom_fonts = {
+        "Arial": ("Arial", "Arial-Bold", "Arial-Italic", "Arial-BoldItalic"),
+    }
+
+    # Built-in fonts (no Turkish character support)
+    builtin_fonts = {
         "Helvetica": ("Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique"),
         "Times": ("Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic"),
         "Courier": ("Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique"),
     }
 
-    if font_family in base_fonts:
-        variants = base_fonts[font_family]
+    # Map Helvetica to Arial for Turkish support
+    if font_family == "Helvetica":
+        font_family = "Arial"
+
+    all_fonts = {**custom_fonts, **builtin_fonts}
+
+    if font_family in all_fonts:
+        variants = all_fonts[font_family]
         if is_bold and is_italic:
             return variants[3]
         elif is_bold:
@@ -53,7 +65,7 @@ def _resolve_font(font_family: str, is_bold: bool, is_italic: bool) -> str:
         else:
             return variants[0]
 
-    # For custom fonts, just return the font_family name
+    # For other custom fonts, just return the font_family name
     return font_family
 
 
@@ -220,19 +232,27 @@ def _draw_signatures(c: canvas.Canvas, signatures: list[dict], page_width: float
         c.setFillColor(HexColor("#000000"))
 
         # Draw name
+        # Editor element: top=nameY%, height=3%, text vertically centered
         if sig.get("show_name", True):
             name = sig.get("name", "")
             if name:
-                c.setFont("Helvetica", 8)
+                name_fs = sig.get("name_font_size", 8)
+                c.setFont("Arial", name_fs)
                 nx = sig.get("name_x", 0) / 100 * page_width
-                ny = page_height - sig.get("name_y", 0) / 100 * page_height
+                name_y_top = sig.get("name_y", 0) / 100 * page_height
+                el_h = 0.03 * page_height  # 3% height matching editor
+                ny = page_height - name_y_top - el_h + (el_h - name_fs) / 2
                 c.drawString(nx, ny, name)
 
         # Draw title
+        # Editor element: top=titleY%, height=3%, text vertically centered
         if sig.get("show_title", True):
             title = sig.get("title", "")
             if title:
-                c.setFont("Helvetica", 7)
+                title_fs = sig.get("title_font_size", 7)
+                c.setFont("Arial", title_fs)
                 tx = sig.get("title_x", 0) / 100 * page_width
-                ty = page_height - sig.get("title_y", 0) / 100 * page_height
+                title_y_top = sig.get("title_y", 0) / 100 * page_height
+                el_h = 0.03 * page_height  # 3% height matching editor
+                ty = page_height - title_y_top - el_h + (el_h - title_fs) / 2
                 c.drawString(tx, ty, title)

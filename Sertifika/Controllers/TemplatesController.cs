@@ -1,5 +1,8 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Sertifika.Entities;
 using Sertifika.Factories.Templates;
+using Sertifika.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,11 +15,13 @@ public class TemplatesController : ControllerBase
 {
     private readonly ITemplateCrudFactory _crud;
     private readonly IWebHostEnvironment _env;
+    private readonly IPdfService _pdfService;
 
-    public TemplatesController(ITemplateCrudFactory crud, IWebHostEnvironment env)
+    public TemplatesController(ITemplateCrudFactory crud, IWebHostEnvironment env, IPdfService pdfService)
     {
         _crud = crud;
         _env = env;
+        _pdfService = pdfService;
     }
 
     [HttpGet]
@@ -69,6 +74,114 @@ public class TemplatesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id}/preview")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public async Task<IActionResult> PreviewTemplate(int id, [FromBody] TemplatePreviewRequest request)
+    {
+        var template = await _crud.GetTemplateWithSignaturesAsync(id);
+        if (template == null) return NotFound();
+
+        var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+
+        var opts = new JsonSerializerOptions { NumberHandling = JsonNumberHandling.AllowReadingFromString };
+        var fields = JsonSerializer.Deserialize<List<TemplateField>>(request.LayoutJson ?? "[]", opts) ?? new();
+
+        var layout = fields.Select(f => new PdfFieldLayout
+        {
+            Type = f.FieldType == "dynamic" ? "dynamic" : (f.FieldType == "qrcode" ? "qrcode" : "static"),
+            Key = f.DynamicKey,
+            Text = f.StaticText,
+            X = f.X, Y = f.Y, Width = f.Width, Height = f.Height,
+            FontFamily = f.FontFamily,
+            FontSize = f.FontSize,
+            FontColor = f.FontColor,
+            IsBold = f.IsBold, IsItalic = f.IsItalic,
+            Alignment = f.TextAlign
+        }).ToList();
+
+        // Use editor's current signature positions (may be unsaved)
+        var dbSignatures = (template.TemplateSignatures ?? new List<TemplateSignature>())
+            .Where(ts => ts.IsActive)
+            .OrderBy(ts => ts.DisplayOrder)
+            .ToList();
+
+        var signatures = new List<PdfSignatureInfo>();
+        Console.WriteLine($"[PREVIEW DEBUG] request.Signatures is null: {request.Signatures == null}, count: {request.Signatures?.Count ?? -1}");
+        if (request.Signatures != null)
+        {
+            foreach (var s in request.Signatures)
+                Console.WriteLine($"[PREVIEW DEBUG] sig={s.SignatureId} nameX={s.NameX} nameY={s.NameY} titleX={s.TitleX} titleY={s.TitleY}");
+        }
+        if (request.Signatures != null && request.Signatures.Count > 0)
+        {
+            foreach (var rs in request.Signatures)
+            {
+                var dbSig = dbSignatures.FirstOrDefault(ts => ts.SignatureId == rs.SignatureId);
+                var imageUrl = dbSig != null ? ResolveFile(webRoot, dbSig.Signature.ImageUrl) : null;
+                signatures.Add(new PdfSignatureInfo
+                {
+                    Name = rs.InstructorName ?? dbSig?.Signature.Name ?? "",
+                    Title = rs.InstructorTitle ?? dbSig?.Signature.Title,
+                    ImageUrl = imageUrl,
+                    ShowName = rs.ShowName, ShowTitle = rs.ShowTitle,
+                    ImageX = rs.ImageX, ImageY = rs.ImageY,
+                    ImageWidth = rs.ImageWidth, ImageHeight = rs.ImageHeight,
+                    ImageRotation = rs.ImageRotation,
+                    NameX = rs.NameX, NameY = rs.NameY,
+                    TitleX = rs.TitleX, TitleY = rs.TitleY,
+                    NameFontSize = rs.NameFontSize, TitleFontSize = rs.TitleFontSize
+                });
+            }
+        }
+        else
+        {
+            signatures = dbSignatures.Select(ts => new PdfSignatureInfo
+            {
+                Name = ts.InstructorName ?? ts.Signature.Name,
+                Title = ts.InstructorTitle ?? ts.Signature.Title,
+                ImageUrl = ResolveFile(webRoot, ts.Signature.ImageUrl),
+                ShowName = ts.ShowName, ShowTitle = ts.ShowTitle,
+                ImageX = ts.ImageX, ImageY = ts.ImageY,
+                ImageWidth = ts.ImageWidth, ImageHeight = ts.ImageHeight,
+                ImageRotation = ts.ImageRotation,
+                NameX = ts.NameX, NameY = ts.NameY,
+                TitleX = ts.TitleX, TitleY = ts.TitleY,
+                NameFontSize = ts.NameFontSize, TitleFontSize = ts.TitleFontSize
+            }).ToList();
+        }
+
+        var dynamicValues = new Dictionary<string, string>
+        {
+            ["HolderName"] = "Ornek Katilimci",
+            ["TrainingName"] = "Ornek Egitim Adi",
+            ["TrainingDate"] = DateTime.Now.ToString("dd.MM.yyyy"),
+            ["CompanyName"] = "Ornek Firma A.S.",
+            ["CertificateNo"] = "CERT-ONIZLEME-0001",
+            ["QrCode"] = "https://sertifika.example.com/verify/CERT-ONIZLEME-0001"
+        };
+
+        var orientation = (request.Orientation == 0) ? "landscape" : "portrait";
+        string? bgPath = ResolveFile(webRoot, template.BackgroundImageUrl);
+
+        var pdfBytes = await _pdfService.PreviewAsync(new PdfGenerateRequest
+        {
+            Orientation = orientation,
+            BackgroundImagePath = bgPath,
+            Layout = layout,
+            Signatures = signatures,
+            DynamicValues = dynamicValues
+        });
+
+        return File(pdfBytes, "application/pdf", "preview.pdf");
+    }
+
+    private static string? ResolveFile(string webRoot, string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return null;
+        var fullPath = Path.Combine(webRoot, relativePath.TrimStart('/'));
+        return System.IO.File.Exists(fullPath) ? fullPath : null;
+    }
+
     [HttpPost("{id}/upload-background")]
     [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<IActionResult> UploadBackground(int id, IFormFile file)
@@ -104,4 +217,11 @@ public class TemplatesController : ControllerBase
 public class UpdateTemplateSignaturesRequest
 {
     public List<TemplateSignatureInput> Signatures { get; set; } = new();
+}
+
+public class TemplatePreviewRequest
+{
+    public string? LayoutJson { get; set; }
+    public int Orientation { get; set; }
+    public List<TemplateSignatureInput>? Signatures { get; set; }
 }

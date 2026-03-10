@@ -6,13 +6,25 @@ function TrainingsViewModel() {
     self.isSaving = ko.observable(false);
     self.isEditing = ko.observable(false);
     self.editingId = null;
+    self.searchQuery = ko.observable('');
 
     self.formName = ko.observable('');
+    self.formDisplayName = ko.observable('');
     self.formDescription = ko.observable('');
     self.formTrainingDate = ko.observable('');
     self.formCompanyName = ko.observable('');
     self.formTemplateId = ko.observable(null);
     self.availableTemplates = ko.observableArray([]);
+
+    self.filteredTrainings = ko.computed(function() {
+        var q = (self.searchQuery() || '').toLowerCase().trim();
+        if (!q) return self.trainings();
+        return self.trainings().filter(function(t) {
+            return (t.name || '').toLowerCase().indexOf(q) >= 0
+                || (t.displayName || '').toLowerCase().indexOf(q) >= 0
+                || (t.companyName || '').toLowerCase().indexOf(q) >= 0;
+        });
+    });
 
     self.selectedTemplateSignatures = ko.computed(function() {
         var tid = self.formTemplateId();
@@ -51,6 +63,7 @@ function TrainingsViewModel() {
         self.isEditing(false);
         self.editingId = null;
         self.formName('');
+        self.formDisplayName('');
         self.formDescription('');
         self.formTrainingDate('');
         self.formCompanyName('');
@@ -71,6 +84,7 @@ function TrainingsViewModel() {
         self.isEditing(true);
         self.editingId = training.id;
         self.formName(training.name || '');
+        self.formDisplayName(training.displayName || '');
         self.formDescription(training.description || '');
         self.formTrainingDate(training.trainingDate ? training.trainingDate.substring(0, 10) : '');
         self.formCompanyName(training.companyName || '');
@@ -88,6 +102,7 @@ function TrainingsViewModel() {
         self.isSaving(true);
         var body = {
             name: self.formName(),
+            displayName: self.formDisplayName() || null,
             description: self.formDescription(),
             trainingDate: self.formTrainingDate() + 'T00:00:00Z',
             companyName: self.formCompanyName(),

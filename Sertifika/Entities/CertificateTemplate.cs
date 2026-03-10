@@ -37,6 +37,8 @@ public class TemplateSignature : BaseEntity
     public double NameY { get; set; }
     public double TitleX { get; set; }
     public double TitleY { get; set; }
+    public int NameFontSize { get; set; } = 8;
+    public int TitleFontSize { get; set; } = 7;
 }
 
 public enum PageOrientation

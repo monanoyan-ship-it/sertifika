@@ -9,6 +9,7 @@ function TemplateEditorViewModel() {
     self.backgroundPreview = ko.observable('');
     self.backgroundImageUrl = null; // DB'deki mevcut URL
     self.isSaving = ko.observable(false);
+    self.isPreviewing = ko.observable(false);
 
     self.fields = ko.observableArray([]);
     self.templateSignatures = ko.observableArray([]);
@@ -65,13 +66,17 @@ function TemplateEditorViewModel() {
             nameX: ko.observable(ts.nameX || 0),
             nameY: ko.observable(ts.nameY || 90),
             titleX: ko.observable(ts.titleX || 0),
-            titleY: ko.observable(ts.titleY || 93)
+            titleY: ko.observable(ts.titleY || 93),
+            nameFontSize: ko.observable(ts.nameFontSize || 8),
+            titleFontSize: ko.observable(ts.titleFontSize || 7)
         };
         obs.instructorName.subscribe(function() { self.renderAll(); });
         obs.instructorTitle.subscribe(function() { self.renderAll(); });
         obs.showName.subscribe(function() { self.renderAll(); });
         obs.showTitle.subscribe(function() { self.renderAll(); });
         obs.imageRotation.subscribe(function() { self.renderAll(); });
+        obs.nameFontSize.subscribe(function() { self.renderAll(); });
+        obs.titleFontSize.subscribe(function() { self.renderAll(); });
         return obs;
     }
 
@@ -156,7 +161,7 @@ function TemplateEditorViewModel() {
             staticText: data.staticText || '',
             x: data.x, y: data.y, width: data.width, height: data.height,
             fontFamily: data.fontFamily || 'Arial',
-            fontSize: data.fontSize || 14,
+            fontSize: parseFloat(data.fontSize) || 14,
             fontColor: data.fontColor || '#000000',
             isBold: data.isBold || false,
             isItalic: data.isItalic || false,
@@ -378,7 +383,8 @@ function TemplateEditorViewModel() {
 
         var lbl = document.createElement('span');
         lbl.textContent = sig.instructorName() || sig.signature.name || '';
-        lbl.style.cssText = 'color:#27ae60;font-size:10px;pointer-events:none;white-space:nowrap;';
+        var nameFsDisplay = Math.min(Math.max(parseInt(sig.nameFontSize()) || 8, 6), 24);
+        lbl.style.cssText = 'color:#27ae60;font-size:' + nameFsDisplay + 'px;pointer-events:none;white-space:nowrap;';
         el.appendChild(lbl);
 
         el.addEventListener('mousedown', function(e) {
@@ -403,7 +409,8 @@ function TemplateEditorViewModel() {
 
         var lbl = document.createElement('span');
         lbl.textContent = sig.instructorTitle() || sig.signature.title || '';
-        lbl.style.cssText = 'color:#8e44ad;font-size:9px;pointer-events:none;white-space:nowrap;';
+        var titleFsDisplay = Math.min(Math.max(parseInt(sig.titleFontSize()) || 7, 6), 24);
+        lbl.style.cssText = 'color:#8e44ad;font-size:' + titleFsDisplay + 'px;pointer-events:none;white-space:nowrap;';
         el.appendChild(lbl);
 
         el.addEventListener('mousedown', function(e) {
@@ -526,6 +533,76 @@ function TemplateEditorViewModel() {
         document.addEventListener('mouseup', onUp);
     }
 
+    // ==================== PREVIEW ====================
+
+    self.previewTemplate = function() {
+        if (!templateId) { toastr.warning('Once sablonu kaydedin'); return; }
+
+        self.isPreviewing(true);
+
+        var layout = self.fields().map(function(f) {
+            return {
+                FieldType: f.fieldType, DynamicKey: f.dynamicKey, StaticText: f.staticText,
+                X: f.x, Y: f.y, Width: f.width, Height: f.height,
+                FontFamily: f.fontFamily, FontSize: parseFloat(f.fontSize) || 14, FontColor: f.fontColor,
+                IsBold: f.isBold, IsItalic: f.isItalic, TextAlign: f.textAlign
+            };
+        });
+
+        var sigs = self.templateSignatures().map(function(s) {
+            return {
+                signatureId: s.signatureId,
+                instructorName: s.instructorName(),
+                instructorTitle: s.instructorTitle(),
+                showName: s.showName(),
+                showTitle: s.showTitle(),
+                imageX: parseFloat(s.imageX()) || 0,
+                imageY: parseFloat(s.imageY()) || 0,
+                imageWidth: parseFloat(s.imageWidth()) || 12,
+                imageHeight: parseFloat(s.imageHeight()) || 8,
+                imageRotation: parseInt(s.imageRotation()) || 0,
+                nameX: parseFloat(s.nameX()) || 0,
+                nameY: parseFloat(s.nameY()) || 0,
+                titleX: parseFloat(s.titleX()) || 0,
+                titleY: parseFloat(s.titleY()) || 0,
+                nameFontSize: parseInt(s.nameFontSize()) || 8,
+                titleFontSize: parseInt(s.titleFontSize()) || 7
+            };
+        });
+
+        console.log('[PREVIEW] Sending signatures:', JSON.stringify(sigs, null, 2));
+
+        var body = {
+            layoutJson: JSON.stringify(layout),
+            orientation: parseInt(self.orientation()),
+            signatures: sigs
+        };
+
+        $.ajax({
+            url: API_BASE + '/templates/' + templateId + '/preview',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(body),
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+            xhrFields: { responseType: 'blob' }
+        })
+        .done(function(blob) {
+            var url = URL.createObjectURL(blob);
+            document.getElementById('previewFrame').src = url;
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+            // Clean up blob URL when modal closes
+            document.getElementById('previewModal').addEventListener('hidden.bs.modal', function() {
+                URL.revokeObjectURL(url);
+            }, { once: true });
+        })
+        .fail(function(xhr) {
+            toastr.error('On izleme olusturulamadi: ' + (xhr.responseText || 'Hata'));
+        })
+        .always(function() {
+            self.isPreviewing(false);
+        });
+    };
+
     // ==================== SAVE ====================
 
     self.saveTemplate = function() {
@@ -537,7 +614,7 @@ function TemplateEditorViewModel() {
             return {
                 FieldType: f.fieldType, DynamicKey: f.dynamicKey, StaticText: f.staticText,
                 X: f.x, Y: f.y, Width: f.width, Height: f.height,
-                FontFamily: f.fontFamily, FontSize: f.fontSize, FontColor: f.fontColor,
+                FontFamily: f.fontFamily, FontSize: parseFloat(f.fontSize) || 14, FontColor: f.fontColor,
                 IsBold: f.isBold, IsItalic: f.isItalic, TextAlign: f.textAlign
             };
         });
@@ -589,7 +666,9 @@ function TemplateEditorViewModel() {
                             nameX: parseFloat(s.nameX()) || 0,
                             nameY: parseFloat(s.nameY()) || 0,
                             titleX: parseFloat(s.titleX()) || 0,
-                            titleY: parseFloat(s.titleY()) || 0
+                            titleY: parseFloat(s.titleY()) || 0,
+                            nameFontSize: parseInt(s.nameFontSize()) || 8,
+                            titleFontSize: parseInt(s.titleFontSize()) || 7
                         };
                     });
                     sigPromise = apiPut('/templates/' + savedId + '/signatures', { signatures: signatures });

@@ -51,6 +51,7 @@ public class TrainingsController : ControllerBase
         var training = new Training
         {
             Name = request.Name,
+            DisplayName = request.DisplayName,
             Description = request.Description,
             TrainingDate = request.TrainingDate,
             CompanyName = request.CompanyName,
@@ -63,9 +64,18 @@ public class TrainingsController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,CertificateCreator")]
-    public async Task<IActionResult> UpdateTraining(int id, Training training)
+    public async Task<IActionResult> UpdateTraining(int id, [FromBody] UpdateTrainingRequest request)
     {
-        if (id != training.Id) return BadRequest();
+        var training = await _crud.GetTrainingAsync(id);
+        if (training == null) return NotFound();
+
+        training.Name = request.Name;
+        training.DisplayName = request.DisplayName;
+        training.Description = request.Description;
+        training.TrainingDate = request.TrainingDate;
+        training.CompanyName = request.CompanyName;
+        training.TemplateId = request.TemplateId;
+
         await _crud.UpdateTrainingAsync(training);
         return NoContent();
     }
@@ -194,6 +204,17 @@ public class SendToContactRequest
 public class CreateTrainingRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public DateTime TrainingDate { get; set; }
+    public string? CompanyName { get; set; }
+    public int TemplateId { get; set; }
+}
+
+public class UpdateTrainingRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public DateTime TrainingDate { get; set; }
     public string? CompanyName { get; set; }

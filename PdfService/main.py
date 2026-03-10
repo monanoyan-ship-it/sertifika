@@ -2,12 +2,24 @@ import os
 import io
 import json
 import uuid
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+import logging
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from pdf_generator import generate_certificate_pdf
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Sertifika PDF Servisi", version="1.0.0")
+
+
+@app.exception_handler(422)
+async def validation_exception_handler(request: Request, exc):
+    body = await request.body()
+    logger.error(f"Validation error for {request.url}. Body: {body[:2000]}")
+    logger.error(f"Error: {exc}")
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
 class SignatureInfo(BaseModel):
@@ -25,6 +37,8 @@ class SignatureInfo(BaseModel):
     name_y: float = 0
     title_x: float = 0
     title_y: float = 0
+    name_font_size: int = 8
+    title_font_size: int = 7
 
 
 class FieldLayout(BaseModel):
@@ -87,12 +101,20 @@ def generate_single(request: CertificateRequest):
 
         filename = request.output_filename or f"certificate_{uuid.uuid4().hex[:8]}.pdf"
 
+        # Use RFC 5987 encoding for non-ASCII filenames
+        from urllib.parse import quote
+        ascii_filename = filename.encode("ascii", errors="replace").decode("ascii")
+        encoded_filename = quote(filename)
+        content_disp = f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{encoded_filename}"
+
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={"Content-Disposition": content_disp},
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

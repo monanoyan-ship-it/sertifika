@@ -46,7 +46,9 @@ public class TrainingCrudFactory : ITrainingCrudFactory
                     NameX = ts.NameX,
                     NameY = ts.NameY,
                     TitleX = ts.TitleX,
-                    TitleY = ts.TitleY
+                    TitleY = ts.TitleY,
+                    NameFontSize = ts.NameFontSize,
+                    TitleFontSize = ts.TitleFontSize
                 });
             }
         }

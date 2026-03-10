@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Sertifika.Context;
@@ -11,9 +12,11 @@ using Sertifika.Context;
 namespace Sertifika.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260310063447_AddTrainingDisplayName")]
+    partial class AddTrainingDisplayName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -619,9 +622,6 @@ namespace Sertifika.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("NameFontSize")
-                        .HasColumnType("integer");
-
                     b.Property<double>("NameX")
                         .HasColumnType("double precision");
 
@@ -638,9 +638,6 @@ namespace Sertifika.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("TemplateId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TitleFontSize")
                         .HasColumnType("integer");
 
                     b.Property<double>("TitleX")
@@ -745,9 +742,6 @@ namespace Sertifika.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("NameFontSize")
-                        .HasColumnType("integer");
-
                     b.Property<double>("NameX")
                         .HasColumnType("double precision");
 
@@ -761,9 +755,6 @@ namespace Sertifika.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("SignatureId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TitleFontSize")
                         .HasColumnType("integer");
 
                     b.Property<double>("TitleX")

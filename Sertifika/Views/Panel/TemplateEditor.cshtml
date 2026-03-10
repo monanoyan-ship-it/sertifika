@@ -35,6 +35,10 @@
                     <!-- /ko -->
                 </ul>
             </div>
+            <button class="btn btn-sm btn-outline-info" data-bind="click: previewTemplate, disable: isPreviewing">
+                <span data-bind="visible: isPreviewing" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-eye me-1" data-bind="visible: !isPreviewing()"></i>On Izleme
+            </button>
             <button class="btn btn-primary btn-sm" data-bind="click: saveTemplate, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                 <i class="bi bi-floppy me-1" data-bind="visible: !isSaving()"></i>Kaydet
@@ -197,6 +201,16 @@
                             <label class="form-check-label">Unvan Goster</label>
                         </div>
                     </div>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label">Ad Boyutu</label>
+                            <input type="number" class="form-control form-control-sm" min="4" max="48" data-bind="value: nameFontSize">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Unvan Boyutu</label>
+                            <input type="number" class="form-control form-control-sm" min="4" max="48" data-bind="value: titleFontSize">
+                        </div>
+                    </div>
                     <div class="mb-2">
                         <button class="btn btn-sm btn-outline-secondary" data-bind="click: $parent.rotateSelectedSignature">
                             <i class="bi bi-arrow-clockwise me-1"></i>Gorseli Dondir
@@ -209,6 +223,21 @@
                     </div>
                     <!-- /ko -->
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">On Izleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="previewFrame" style="width:100%; height:75vh; border:none;"></iframe>
             </div>
         </div>
     </div>
