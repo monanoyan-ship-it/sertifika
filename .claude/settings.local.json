@@ -12,7 +12,10 @@
       "Bash(taskkill:*)",
       "Bash(cmd:*)",
       "Bash(ls:*)",
-      "Bash(tr ;:*)"
+      "Bash(tr ;:*)",
+      "Bash(xargs wc:*)",
+      "Bash(powershell:*)",
+      "Bash(cp:*)"
     ]
   }
 }
