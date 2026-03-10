@@ -14,6 +14,17 @@ class SignatureInfo(BaseModel):
     name: str
     title: str | None = None
     image_url: str | None = None
+    show_name: bool = True
+    show_title: bool = True
+    image_x: float = 0
+    image_y: float = 0
+    image_width: float = 12
+    image_height: float = 8
+    image_rotation: int = 0
+    name_x: float = 0
+    name_y: float = 0
+    title_x: float = 0
+    title_y: float = 0
 
 
 class FieldLayout(BaseModel):

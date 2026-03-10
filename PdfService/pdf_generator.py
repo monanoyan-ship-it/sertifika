@@ -180,46 +180,59 @@ def _draw_qr_code(c: canvas.Canvas, data: str, field: dict, page_width: float, p
 
 
 def _draw_signatures(c: canvas.Canvas, signatures: list[dict], page_width: float, page_height: float):
-    """Draw signature images at the bottom of the page."""
-    sig_count = len(signatures)
-    if sig_count == 0:
+    """Draw signature images, names, and titles using percentage-based positions."""
+    if not signatures:
         return
 
-    sig_area_y = 60  # Points from bottom
-    sig_height = 50
-    sig_width = 100
-    total_width = sig_count * sig_width + (sig_count - 1) * 40
-    start_x = (page_width - total_width) / 2
+    from reportlab.lib.utils import ImageReader
 
-    for i, sig in enumerate(signatures):
-        x = start_x + i * (sig_width + 40)
+    for sig in signatures:
+        # All positions are percentages (0-100) of page dimensions
+        img_x = sig.get("image_x", 0) / 100 * page_width
+        img_y_from_top = sig.get("image_y", 0) / 100 * page_height
+        img_w = sig.get("image_width", 12) / 100 * page_width
+        img_h = sig.get("image_height", 8) / 100 * page_height
+        img_y = page_height - img_y_from_top - img_h
 
-        # Draw signature image if available
+        # Draw signature image (with rotation support)
         image_url = sig.get("image_url")
+        rotation = sig.get("image_rotation", 0)
         if image_url and os.path.isfile(image_url):
             try:
-                from reportlab.lib.utils import ImageReader
+                pil_img = Image.open(image_url)
+                from PIL import ImageOps
+                pil_img = ImageOps.exif_transpose(pil_img)
+                if rotation:
+                    pil_img = pil_img.rotate(-rotation * 90, expand=True)
+                img_buf = io.BytesIO()
+                pil_img.save(img_buf, format="PNG")
+                img_buf.seek(0)
                 c.drawImage(
-                    ImageReader(image_url),
-                    x, sig_area_y + 15,
-                    width=sig_width, height=sig_height,
+                    ImageReader(img_buf),
+                    img_x, img_y,
+                    width=img_w, height=img_h,
                     preserveAspectRatio=True,
                     mask="auto",
                 )
             except Exception:
                 pass
 
-        # Draw name and title below signature
-        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor("#000000"))
 
-        name = sig.get("name", "")
-        title = sig.get("title", "")
+        # Draw name
+        if sig.get("show_name", True):
+            name = sig.get("name", "")
+            if name:
+                c.setFont("Helvetica", 8)
+                nx = sig.get("name_x", 0) / 100 * page_width
+                ny = page_height - sig.get("name_y", 0) / 100 * page_height
+                c.drawString(nx, ny, name)
 
-        name_width = c.stringWidth(name, "Helvetica", 8)
-        c.drawString(x + (sig_width - name_width) / 2, sig_area_y + 5, name)
-
-        if title:
-            title_width = c.stringWidth(title, "Helvetica", 7)
-            c.setFont("Helvetica", 7)
-            c.drawString(x + (sig_width - title_width) / 2, sig_area_y - 5, title)
+        # Draw title
+        if sig.get("show_title", True):
+            title = sig.get("title", "")
+            if title:
+                c.setFont("Helvetica", 7)
+                tx = sig.get("title_x", 0) / 100 * page_width
+                ty = page_height - sig.get("title_y", 0) / 100 * page_height
+                c.drawString(tx, ty, title)
