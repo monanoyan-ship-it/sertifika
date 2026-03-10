@@ -15,7 +15,11 @@
       "Bash(tr ;:*)",
       "Bash(xargs wc:*)",
       "Bash(powershell:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(start-pdfservice.bat:*)",
+      "Bash(PGPASSWORD='1123Azs+-' psql:*)",
+      "Bash(PGPASSWORD='1123Azs+-' \"/c/Program Files/PostgreSQL/17/bin/psql.exe\":*)",
+      "Bash(source:*)"
     ]
   }
 }
