@@ -112,8 +112,8 @@
                         <td data-bind="text: companyName || '-'"></td>
                         <td><code data-bind="text: certificateNumber || '-'"></code></td>
                         <td>
-                            <!-- ko if: certificatePdfUrl -->
-                            <a class="btn btn-sm btn-outline-success" data-bind="attr: { href: certificatePdfUrl }" target="_blank">
+                            <!-- ko if: certificateNumber -->
+                            <a class="btn btn-sm btn-outline-success" data-bind="attr: { href: '/api/certificates/download/' + certificateNumber }" target="_blank" title="PDF Gor">
                                 <i class="bi bi-file-pdf"></i>
                             </a>
                             <!-- /ko -->

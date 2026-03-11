@@ -3,6 +3,7 @@ namespace Sertifika.Services;
 public interface IOneDriveService
 {
     Task<OneDriveUploadResult> ArchiveTrainingCertificatesAsync(int trainingId, string companyName, string trainingName, DateTime trainingDate);
+    Task<byte[]?> DownloadFileAsync(string fileId);
 }
 
 public class OneDriveUploadResult
@@ -12,4 +13,5 @@ public class OneDriveUploadResult
     public int Failed { get; set; }
     public string FolderPath { get; set; } = string.Empty;
     public List<string> Errors { get; set; } = new();
+    public Dictionary<string, string> FileItemIds { get; set; } = new();
 }

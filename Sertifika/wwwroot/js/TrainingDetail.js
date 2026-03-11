@@ -225,11 +225,17 @@ function TrainingDetailViewModel() {
     };
 
     self.archiveToOneDrive = function() {
-        showConfirm('OneDrive\'a arsivlenecek. Devam?').then(function(ok) {
+        showConfirm('Sertifikalar OneDrive\'a yuklenecek ve lokal dosyalar silinecek. Devam?').then(function(ok) {
             if (!ok) return;
+            toastr.info('OneDrive\'a yukleniyor...');
             apiPost('/trainings/' + trainingId + '/archive-onedrive')
                 .done(function(result) {
-                    toastr.success('Arsivleme: ' + result.uploaded + '/' + result.total + ' yuklendi');
+                    if (result.failed > 0) {
+                        toastr.warning('Arsivleme: ' + result.uploaded + '/' + result.total + ' yuklendi, ' + result.failed + ' basarisiz');
+                    } else {
+                        toastr.success('Arsivleme tamamlandi: ' + result.uploaded + '/' + result.total + ' yuklendi');
+                    }
+                    self.loadParticipants();
                 })
                 .fail(function(xhr) {
                     toastr.error('Hata: ' + (xhr.responseText || 'Arsivleme basarisiz'));

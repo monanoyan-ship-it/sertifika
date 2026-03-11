@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sertifika Dogrulama</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -17,6 +18,9 @@
             <button type="submit" class="btn btn-primary">Dogrula</button>
         </form>
         <div id="verify-result"></div>
+        <div id="cert-preview" style="display:none; margin-top:20px;">
+            <iframe id="cert-pdf-frame" style="width:100%; height:70vh; border:1px solid #ddd; border-radius:8px;"></iframe>
+        </div>
     </div>
 
     <script src="/js/verify.js"></script>

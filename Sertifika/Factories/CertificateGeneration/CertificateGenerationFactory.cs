@@ -14,6 +14,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
     private readonly IParticipantEntityService _participantService;
     private readonly ITemplateEntityService _templateService;
     private readonly IPdfService _pdfService;
+    private readonly IOneDriveService _oneDrive;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IWebHostEnvironment _env;
 
@@ -22,6 +23,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         IParticipantEntityService participantService,
         ITemplateEntityService templateService,
         IPdfService pdfService,
+        IOneDriveService oneDrive,
         IUnitOfWork unitOfWork,
         IWebHostEnvironment env)
     {
@@ -29,6 +31,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         _participantService = participantService;
         _templateService = templateService;
         _pdfService = pdfService;
+        _oneDrive = oneDrive;
         _unitOfWork = unitOfWork;
         _env = env;
     }
@@ -143,22 +146,39 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         if (training == null)
             throw new ArgumentException("Training not found");
 
-        var certDir = Path.Combine(
-            _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
-            "uploads", "certificates", $"training_{trainingId}");
+        var participants = (await _participantService.GetByTrainingIdAsync(trainingId))
+            .Where(p => !string.IsNullOrEmpty(p.CertificatePdfUrl))
+            .ToList();
 
-        if (!Directory.Exists(certDir) || !Directory.GetFiles(certDir, "*.pdf").Any())
+        if (participants.Count == 0)
             throw new InvalidOperationException("No certificates generated yet. Run generate first.");
 
         using var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
-            foreach (var file in Directory.GetFiles(certDir, "*.pdf"))
+            foreach (var participant in participants)
             {
-                var entry = archive.CreateEntry(Path.GetFileName(file), CompressionLevel.Optimal);
-                using var entryStream = entry.Open();
-                using var fileStream = System.IO.File.OpenRead(file);
-                await fileStream.CopyToAsync(entryStream);
+                var fileName = Path.GetFileName(participant.CertificatePdfUrl!);
+                byte[]? pdfBytes = null;
+
+                if (participant.StorageType == CertificateStorageType.OneDrive && !string.IsNullOrEmpty(participant.CloudFileId))
+                {
+                    pdfBytes = await _oneDrive.DownloadFileAsync(participant.CloudFileId);
+                }
+                else
+                {
+                    var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+                    var localPath = Path.Combine(webRoot, participant.CertificatePdfUrl!.TrimStart('/'));
+                    if (File.Exists(localPath))
+                        pdfBytes = await File.ReadAllBytesAsync(localPath);
+                }
+
+                if (pdfBytes != null)
+                {
+                    var entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+                    using var entryStream = entry.Open();
+                    await entryStream.WriteAsync(pdfBytes);
+                }
             }
         }
 
