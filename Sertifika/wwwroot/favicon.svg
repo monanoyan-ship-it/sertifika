@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a237e"/>
+      <stop offset="100%" style="stop-color:#283593"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#bg)"/>
+  <!-- Certificate body -->
+  <rect x="12" y="10" width="40" height="32" rx="3" fill="#ffffff" opacity="0.95"/>
+  <!-- Lines on certificate -->
+  <rect x="18" y="17" width="28" height="2.5" rx="1" fill="#c5cae9"/>
+  <rect x="22" y="23" width="20" height="2" rx="1" fill="#e8eaf6"/>
+  <rect x="20" y="28" width="24" height="2" rx="1" fill="#e8eaf6"/>
+  <rect x="24" y="33" width="16" height="2" rx="1" fill="#e8eaf6"/>
+  <!-- Seal/ribbon -->
+  <circle cx="32" cy="46" r="9" fill="#ffd600"/>
+  <circle cx="32" cy="46" r="6" fill="#ffab00"/>
+  <text x="32" y="49" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#ffffff" text-anchor="middle">S</text>
+  <!-- Ribbon tails -->
+  <polygon points="26,52 23,62 28,57" fill="#e65100"/>
+  <polygon points="38,52 41,62 36,57" fill="#e65100"/>
+</svg>
