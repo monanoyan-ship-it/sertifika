@@ -1,9 +1,7 @@
 using Sertifika.Entities;
-using Sertifika.EntityServices;
 using Sertifika.Factories.Trainings;
 using Sertifika.Factories.CertificateGeneration;
 using Sertifika.Factories.Distribution;
-using Sertifika.Infrastructure;
 using Sertifika.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,27 +16,15 @@ public class TrainingsController : ControllerBase
     private readonly ITrainingCrudFactory _crud;
     private readonly ICertificateGenerationFactory _generation;
     private readonly IDistributionFactory _distribution;
-    private readonly IOneDriveService _oneDrive;
-    private readonly IParticipantEntityService _participantService;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IWebHostEnvironment _env;
 
     public TrainingsController(
         ITrainingCrudFactory crud,
         ICertificateGenerationFactory generation,
-        IDistributionFactory distribution,
-        IOneDriveService oneDrive,
-        IParticipantEntityService participantService,
-        IUnitOfWork unitOfWork,
-        IWebHostEnvironment env)
+        IDistributionFactory distribution)
     {
         _crud = crud;
         _generation = generation;
         _distribution = distribution;
-        _oneDrive = oneDrive;
-        _participantService = participantService;
-        _unitOfWork = unitOfWork;
-        _env = env;
     }
 
     [HttpGet]
@@ -188,57 +174,6 @@ public class TrainingsController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/archive-onedrive")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<OneDriveUploadResult>> ArchiveToOneDrive(int id)
-    {
-        try
-        {
-            var training = await _crud.GetTrainingAsync(id);
-            if (training == null) return NotFound();
-
-            var result = await _oneDrive.ArchiveTrainingCertificatesAsync(
-                id, training.CompanyName ?? "Genel", training.Name, training.TrainingDate);
-
-            // Update participants: set cloud file IDs and delete local files
-            if (result.FileItemIds.Count > 0)
-            {
-                var participants = (await _participantService.GetByTrainingIdAsync(id)).ToList();
-                var certDir = Path.Combine(
-                    _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
-                    "uploads", "certificates", $"training_{id}");
-
-                foreach (var participant in participants)
-                {
-                    if (string.IsNullOrEmpty(participant.CertificatePdfUrl)) continue;
-                    var fileName = Path.GetFileName(participant.CertificatePdfUrl);
-                    if (result.FileItemIds.TryGetValue(fileName, out var itemId))
-                    {
-                        participant.StorageType = CertificateStorageType.OneDrive;
-                        participant.CloudFileId = itemId;
-                        _participantService.Update(participant);
-
-                        // Delete local file
-                        var localPath = Path.Combine(certDir, fileName);
-                        if (System.IO.File.Exists(localPath))
-                            System.IO.File.Delete(localPath);
-                    }
-                }
-
-                await _unitOfWork.SaveChangesAsync();
-
-                // Remove directory if empty
-                if (Directory.Exists(certDir) && !Directory.EnumerateFiles(certDir).Any())
-                    Directory.Delete(certDir);
-            }
-
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
 }
 
 public class SendToContactRequest

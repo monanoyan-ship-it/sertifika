@@ -62,7 +62,7 @@ public class CompanyCrudFactory : ICompanyCrudFactory
                     CertificateNumber = p.CertificateNumber,
                     TrainingName = t.Name,
                     TrainingDate = t.TrainingDate,
-                    HasPdf = !string.IsNullOrEmpty(p.CertificatePdfUrl)
+                    HasPdf = !string.IsNullOrEmpty(p.CertificateNumber)
                 }));
 
         return new CompanyDetailDto

@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<SmtpAccount> SmtpAccounts => Set<SmtpAccount>();
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
     public DbSet<TemplateSignature> TemplateSignatures => Set<TemplateSignature>();
+    public DbSet<CertificateSnapshot> CertificateSnapshots => Set<CertificateSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -91,6 +92,16 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ContactId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CertificateSnapshot>(entity =>
+        {
+            entity.HasIndex(e => e.CertificateNumber).IsUnique();
+
+            entity.HasOne(e => e.Participant)
+                .WithOne(p => p.CertificateSnapshot!)
+                .HasForeignKey<CertificateSnapshot>(e => e.ParticipantId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Contact>(entity =>

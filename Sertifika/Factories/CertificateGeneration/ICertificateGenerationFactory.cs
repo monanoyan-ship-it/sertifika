@@ -7,6 +7,8 @@ public interface ICertificateGenerationFactory
     Task<GenerationResult> GenerateCertificatesAsync(int trainingId);
     Task<byte[]> PreviewCertificateAsync(int trainingId, int? participantId = null);
     Task<byte[]> DownloadZipAsync(int trainingId);
+    Task<byte[]?> RenderFromSnapshotAsync(string certificateNumber);
+    Task<byte[]?> RenderByParticipantAsync(int participantId);
 }
 
 public class GenerationResult

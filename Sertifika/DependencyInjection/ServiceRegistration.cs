@@ -38,6 +38,7 @@ public static class ServiceRegistration
         services.AddScoped<IOneDriveAccountEntityService, OneDriveAccountEntityService>();
         services.AddScoped<ISmtpAccountEntityService, SmtpAccountEntityService>();
         services.AddScoped<IEmailTemplateEntityService, EmailTemplateEntityService>();
+        services.AddScoped<ICertificateSnapshotEntityService, CertificateSnapshotEntityService>();
 
         // Factories
         services.AddScoped<ICertificateCrudFactory, CertificateCrudFactory>();

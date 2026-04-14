@@ -17,10 +17,8 @@ public class EmailService : IEmailService
         _emailTemplateService = emailTemplateService;
     }
 
-    public Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName, string pdfFilePath)
-        => SendCertificateEmailAsync(toEmail, recipientName, trainingName, pdfFilePath, null, null);
-
-    public async Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName, string pdfFilePath, string? companyName, string? certificateNo)
+    public async Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName,
+        byte[] pdfBytes, string pdfFilename, string? companyName = null, string? certificateNo = null)
     {
         var smtp = await GetSmtpSettingsAsync();
         var template = await _emailTemplateService.GetDefaultTemplateAsync();
@@ -62,9 +60,10 @@ public class EmailService : IEmailService
 
         message.To.Add(new MailAddress(toEmail, recipientName));
 
-        if (File.Exists(pdfFilePath))
+        if (pdfBytes.Length > 0)
         {
-            message.Attachments.Add(new Attachment(pdfFilePath));
+            var stream = new MemoryStream(pdfBytes);
+            message.Attachments.Add(new Attachment(stream, pdfFilename, "application/pdf"));
         }
 
         await client.SendMailAsync(message);
@@ -78,7 +77,8 @@ public class EmailService : IEmailService
         {
             try
             {
-                await SendCertificateEmailAsync(recipient.Email, recipient.Name, trainingName, recipient.PdfFilePath, companyName, recipient.CertificateNo);
+                await SendCertificateEmailAsync(recipient.Email, recipient.Name, trainingName,
+                    recipient.PdfBytes, recipient.PdfFilename, companyName, recipient.CertificateNo);
                 result.Sent++;
             }
             catch (Exception ex)

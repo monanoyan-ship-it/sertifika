@@ -1,6 +1,5 @@
-using Sertifika.Entities;
 using Sertifika.EntityServices;
-using Sertifika.Services;
+using Sertifika.Factories.CertificateGeneration;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Sertifika.Controllers;
@@ -9,39 +8,39 @@ namespace Sertifika.Controllers;
 [Route("api/certificates/verify")]
 public class VerifyController : ControllerBase
 {
-    private readonly IParticipantEntityService _participantService;
-    private readonly IOneDriveService _oneDrive;
-    private readonly IWebHostEnvironment _env;
+    private readonly ICertificateSnapshotEntityService _snapshotService;
+    private readonly ICertificateGenerationFactory _generation;
 
     public VerifyController(
-        IParticipantEntityService participantService,
-        IOneDriveService oneDrive,
-        IWebHostEnvironment env)
+        ICertificateSnapshotEntityService snapshotService,
+        ICertificateGenerationFactory generation)
     {
-        _participantService = participantService;
-        _oneDrive = oneDrive;
-        _env = env;
+        _snapshotService = snapshotService;
+        _generation = generation;
     }
 
     [HttpGet("{certificateNumber}")]
     public async Task<IActionResult> Verify(string certificateNumber)
     {
-        var participant = await _participantService.GetByCertificateNumberAsync(certificateNumber);
-
-        if (participant == null)
+        var snapshot = await _snapshotService.GetByCertificateNumberAsync(certificateNumber);
+        if (snapshot == null)
             return NotFound(new { valid = false, message = "Sertifika bulunamadi" });
+
+        var participant = snapshot.Participant;
+        var training = participant.Training;
 
         return Ok(new
         {
             valid = true,
             certificate = new
             {
-                certificateNumber = participant.CertificateNumber,
+                certificateNumber = snapshot.CertificateNumber,
                 holderName = $"{participant.FirstName} {participant.LastName}",
-                trainingName = participant.Training.Name,
-                trainingDate = participant.Training.TrainingDate.ToString("dd.MM.yyyy"),
-                companyName = participant.CompanyName ?? participant.Training.CompanyName,
-                hasDownload = !string.IsNullOrEmpty(participant.CertificatePdfUrl)
+                trainingName = training.Name,
+                trainingDate = training.FormatDateRange(),
+                companyName = participant.CompanyName ?? training.CompanyName,
+                generatedAt = snapshot.GeneratedAt,
+                hasDownload = true
             }
         });
     }
@@ -49,28 +48,11 @@ public class VerifyController : ControllerBase
     [HttpGet("~/api/certificates/download/{certificateNumber}")]
     public async Task<IActionResult> Download(string certificateNumber)
     {
-        var participant = await _participantService.GetByCertificateNumberAsync(certificateNumber);
-        if (participant == null || string.IsNullOrEmpty(participant.CertificatePdfUrl))
-            return NotFound();
+        var pdfBytes = await _generation.RenderFromSnapshotAsync(certificateNumber);
+        if (pdfBytes == null)
+            return NotFound(new { error = "Sertifika bulunamadi" });
 
-        byte[]? pdfBytes;
-
-        if (participant.StorageType == CertificateStorageType.OneDrive && !string.IsNullOrEmpty(participant.CloudFileId))
-        {
-            pdfBytes = await _oneDrive.DownloadFileAsync(participant.CloudFileId);
-            if (pdfBytes == null)
-                return StatusCode(502, new { error = "Bulut depolamadan dosya alinamadi" });
-        }
-        else
-        {
-            var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-            var localPath = Path.Combine(webRoot, participant.CertificatePdfUrl.TrimStart('/'));
-            if (!System.IO.File.Exists(localPath))
-                return NotFound(new { error = "Dosya bulunamadi" });
-            pdfBytes = await System.IO.File.ReadAllBytesAsync(localPath);
-        }
-
-        var fileName = Path.GetFileName(participant.CertificatePdfUrl);
-        return File(pdfBytes, "application/pdf", fileName);
+        var filename = $"{certificateNumber}.pdf";
+        return File(pdfBytes, "application/pdf", filename);
     }
 }

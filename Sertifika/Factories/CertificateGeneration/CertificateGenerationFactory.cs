@@ -10,11 +10,17 @@ namespace Sertifika.Factories.CertificateGeneration;
 
 public class CertificateGenerationFactory : ICertificateGenerationFactory
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly ITrainingEntityService _trainingService;
     private readonly IParticipantEntityService _participantService;
     private readonly ITemplateEntityService _templateService;
+    private readonly ICertificateSnapshotEntityService _snapshotService;
     private readonly IPdfService _pdfService;
-    private readonly IOneDriveService _oneDrive;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IWebHostEnvironment _env;
 
@@ -22,19 +28,21 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         ITrainingEntityService trainingService,
         IParticipantEntityService participantService,
         ITemplateEntityService templateService,
+        ICertificateSnapshotEntityService snapshotService,
         IPdfService pdfService,
-        IOneDriveService oneDrive,
         IUnitOfWork unitOfWork,
         IWebHostEnvironment env)
     {
         _trainingService = trainingService;
         _participantService = participantService;
         _templateService = templateService;
+        _snapshotService = snapshotService;
         _pdfService = pdfService;
-        _oneDrive = oneDrive;
         _unitOfWork = unitOfWork;
         _env = env;
     }
+
+    // ─── Generate: creates snapshots (no PDF on disk) ───
 
     public async Task<GenerationResult> GenerateCertificatesAsync(int trainingId)
     {
@@ -42,20 +50,15 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         if (training == null)
             throw new ArgumentException("Training not found");
 
-        var participants = await _participantService.GetByTrainingIdAsync(trainingId);
-        var participantList = participants.ToList();
-
+        var participantList = (await _participantService.GetByTrainingIdAsync(trainingId)).ToList();
         if (participantList.Count == 0)
             throw new InvalidOperationException("No participants found for this training");
 
         var template = training.Template;
         var layout = ParseLayout(template.LayoutJson);
         var signatures = await BuildSignatureListAsync(training);
-
-        var outputDir = Path.Combine(
-            _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
-            "uploads", "certificates", $"training_{trainingId}");
-        Directory.CreateDirectory(outputDir);
+        var orientation = template.Orientation == PageOrientation.Landscape ? "landscape" : "portrait";
+        var backgroundPath = ResolveFilePath(template.BackgroundImageUrl);
 
         var result = new GenerationResult { Total = participantList.Count };
 
@@ -65,23 +68,35 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             {
                 var certNumber = participant.CertificateNumber ?? GenerateCertificateNumber(training, participant);
                 var dynamicValues = BuildDynamicValues(training, participant, certNumber);
-                var filename = BuildFilename(training, participant);
 
-                var pdfBytes = await _pdfService.GenerateSingleAsync(new PdfGenerateRequest
+                var existing = await _snapshotService.GetByParticipantIdAsync(participant.Id);
+                if (existing == null)
                 {
-                    Orientation = template.Orientation == PageOrientation.Landscape ? "landscape" : "portrait",
-                    BackgroundImagePath = ResolveFilePath(template.BackgroundImageUrl),
-                    Layout = layout,
-                    Signatures = signatures,
-                    DynamicValues = dynamicValues,
-                    OutputFilename = filename
-                });
-
-                var filePath = Path.Combine(outputDir, filename);
-                await File.WriteAllBytesAsync(filePath, pdfBytes);
+                    var snapshot = new CertificateSnapshot
+                    {
+                        ParticipantId = participant.Id,
+                        CertificateNumber = certNumber,
+                        Orientation = orientation,
+                        BackgroundImagePath = backgroundPath,
+                        LayoutJson = JsonSerializer.Serialize(layout, JsonOptions),
+                        SignaturesJson = JsonSerializer.Serialize(signatures, JsonOptions),
+                        DynamicValuesJson = JsonSerializer.Serialize(dynamicValues, JsonOptions),
+                        GeneratedAt = DateTime.UtcNow
+                    };
+                    _snapshotService.Add(snapshot);
+                }
+                else
+                {
+                    existing.CertificateNumber = certNumber;
+                    existing.Orientation = orientation;
+                    existing.BackgroundImagePath = backgroundPath;
+                    existing.LayoutJson = JsonSerializer.Serialize(layout, JsonOptions);
+                    existing.SignaturesJson = JsonSerializer.Serialize(signatures, JsonOptions);
+                    existing.DynamicValuesJson = JsonSerializer.Serialize(dynamicValues, JsonOptions);
+                    existing.GeneratedAt = DateTime.UtcNow;
+                }
 
                 participant.CertificateNumber = certNumber;
-                participant.CertificatePdfUrl = $"/uploads/certificates/training_{trainingId}/{filename}";
                 result.Success++;
             }
             catch (Exception ex)
@@ -97,6 +112,8 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
         return result;
     }
+
+    // ─── Preview: always live render (no persistence) ───
 
     public async Task<byte[]> PreviewCertificateAsync(int trainingId, int? participantId = null)
     {
@@ -140,55 +157,74 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         });
     }
 
+    // ─── Render from snapshot (on-demand PDF) ───
+
+    public async Task<byte[]?> RenderFromSnapshotAsync(string certificateNumber)
+    {
+        var snapshot = await _snapshotService.GetByCertificateNumberAsync(certificateNumber);
+        return snapshot == null ? null : await RenderAsync(snapshot);
+    }
+
+    public async Task<byte[]?> RenderByParticipantAsync(int participantId)
+    {
+        var snapshot = await _snapshotService.GetByParticipantIdAsync(participantId);
+        return snapshot == null ? null : await RenderAsync(snapshot);
+    }
+
+    private async Task<byte[]> RenderAsync(CertificateSnapshot snapshot)
+    {
+        var layout = JsonSerializer.Deserialize<List<PdfFieldLayout>>(snapshot.LayoutJson, JsonOptions) ?? new();
+        var signatures = JsonSerializer.Deserialize<List<PdfSignatureInfo>>(snapshot.SignaturesJson, JsonOptions) ?? new();
+        var dynamicValues = JsonSerializer.Deserialize<Dictionary<string, string>>(snapshot.DynamicValuesJson, JsonOptions) ?? new();
+
+        var participant = snapshot.Participant;
+        var training = participant.Training;
+        var filename = BuildFilename(training, participant);
+
+        return await _pdfService.GenerateSingleAsync(new PdfGenerateRequest
+        {
+            Orientation = snapshot.Orientation,
+            BackgroundImagePath = snapshot.BackgroundImagePath,
+            Layout = layout,
+            Signatures = signatures,
+            DynamicValues = dynamicValues,
+            OutputFilename = filename
+        });
+    }
+
+    // ─── ZIP: render all snapshots on-demand ───
+
     public async Task<byte[]> DownloadZipAsync(int trainingId)
     {
         var training = await _trainingService.GetByIdWithDetailsAsync(trainingId);
         if (training == null)
             throw new ArgumentException("Training not found");
 
-        var participants = (await _participantService.GetByTrainingIdAsync(trainingId))
-            .Where(p => !string.IsNullOrEmpty(p.CertificatePdfUrl))
-            .ToList();
-
-        if (participants.Count == 0)
+        var snapshots = (await _snapshotService.GetByTrainingIdAsync(trainingId)).ToList();
+        if (snapshots.Count == 0)
             throw new InvalidOperationException("No certificates generated yet. Run generate first.");
 
         using var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
-            foreach (var participant in participants)
+            foreach (var snapshot in snapshots)
             {
-                var fileName = Path.GetFileName(participant.CertificatePdfUrl!);
-                byte[]? pdfBytes = null;
-
-                if (participant.StorageType == CertificateStorageType.OneDrive && !string.IsNullOrEmpty(participant.CloudFileId))
-                {
-                    pdfBytes = await _oneDrive.DownloadFileAsync(participant.CloudFileId);
-                }
-                else
-                {
-                    var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-                    var localPath = Path.Combine(webRoot, participant.CertificatePdfUrl!.TrimStart('/'));
-                    if (File.Exists(localPath))
-                        pdfBytes = await File.ReadAllBytesAsync(localPath);
-                }
-
-                if (pdfBytes != null)
-                {
-                    var entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
-                    using var entryStream = entry.Open();
-                    await entryStream.WriteAsync(pdfBytes);
-                }
+                var pdfBytes = await RenderAsync(snapshot);
+                var fileName = BuildFilename(training, snapshot.Participant);
+                var entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+                using var entryStream = entry.Open();
+                await entryStream.WriteAsync(pdfBytes);
             }
         }
 
         return memoryStream.ToArray();
     }
 
+    // ─── Helpers ───
+
     private List<PdfFieldLayout> ParseLayout(string layoutJson)
     {
-        var opts = new JsonSerializerOptions { NumberHandling = JsonNumberHandling.AllowReadingFromString };
-        var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson, opts) ?? new();
+        var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson, JsonOptions) ?? new();
         return fields.Select(f => new PdfFieldLayout
         {
             Type = f.FieldType == "dynamic" ? "dynamic" : (f.DynamicKey == "QrCode" ? "qrcode" : "static"),
@@ -209,7 +245,6 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
     private async Task<List<PdfSignatureInfo>> BuildSignatureListAsync(Training training)
     {
-        // If training has its own signatures with positions, use them
         var trainingSignatures = training.TrainingSignatures
             .Where(ts => ts.IsActive)
             .OrderBy(ts => ts.DisplayOrder)
@@ -238,7 +273,6 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             }).ToList();
         }
 
-        // Fallback: use template signatures (training may have been created before signatures were configured)
         var template = await _templateService.GetByIdWithSignaturesAsync(training.TemplateId);
         if (template?.TemplateSignatures == null) return new();
 
@@ -280,17 +314,15 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
     }
 
     private string GenerateCertificateNumber(Training training, Participant participant)
-    {
-        var date = DateTime.UtcNow;
-        return $"CERT-{date:yyyyMMdd}-{training.Id:D4}-{participant.Id:D4}";
-    }
+        => $"CERT-{DateTime.UtcNow:yyyyMMdd}-{training.Id:D4}-{participant.Id:D4}";
 
     private string BuildFilename(Training training, Participant participant)
     {
-        var company = (participant.CompanyName ?? training.CompanyName ?? "Genel").Replace(" ", "_");
-        var trainingName = training.Name.Replace(" ", "_");
+        var safe = (string s) => string.Concat(s.Select(c => char.IsLetterOrDigit(c) || c == '_' || c == '-' ? c : '_'));
+        var company = safe(participant.CompanyName ?? training.CompanyName ?? "Genel");
+        var trainingName = safe(training.Name);
         var date = training.TrainingDate.ToString("yyyyMMdd");
-        var name = $"{participant.FirstName}_{participant.LastName}";
+        var name = safe($"{participant.FirstName}_{participant.LastName}");
         return $"{company}_{trainingName}_{date}_{name}.pdf";
     }
 

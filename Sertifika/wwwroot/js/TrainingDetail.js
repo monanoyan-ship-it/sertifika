@@ -221,26 +221,7 @@ function TrainingDetailViewModel() {
             });
     };
 
-    self.archiveToOneDrive = function() {
-        showConfirm('Sertifikalar OneDrive\'a yuklenecek ve lokal dosyalar silinecek. Devam?').then(function(ok) {
-            if (!ok) return;
-            toastr.info('OneDrive\'a yukleniyor...');
-            apiPost('/trainings/' + trainingId + '/archive-onedrive')
-                .done(function(result) {
-                    if (result.failed > 0) {
-                        toastr.warning('Arsivleme: ' + result.uploaded + '/' + result.total + ' yuklendi, ' + result.failed + ' basarisiz');
-                    } else {
-                        toastr.success('Arsivleme tamamlandi: ' + result.uploaded + '/' + result.total + ' yuklendi');
-                    }
-                    self.loadParticipants();
-                })
-                .fail(function(xhr) {
-                    toastr.error('Hata: ' + (xhr.responseText || 'Arsivleme basarisiz'));
-                });
-        });
-    };
-
-    $(document).ready(function() {
+$(document).ready(function() {
         participantModal = new bootstrap.Modal(document.getElementById('participantModal'));
         excelModal = new bootstrap.Modal(document.getElementById('excelModal'));
         sendContactModal = new bootstrap.Modal(document.getElementById('sendContactModal'));

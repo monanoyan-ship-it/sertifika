@@ -2,8 +2,9 @@ namespace Sertifika.Services;
 
 public interface IEmailService
 {
-    Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName, string pdfFilePath);
-    Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName, string pdfFilePath, string? companyName, string? certificateNo);
+    Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName,
+        byte[] pdfBytes, string pdfFilename, string? companyName = null, string? certificateNo = null);
+
     Task<EmailBatchResult> SendBatchAsync(List<EmailRecipient> recipients, string trainingName, string? companyName = null);
 }
 
@@ -11,7 +12,8 @@ public class EmailRecipient
 {
     public string Email { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string PdfFilePath { get; set; } = string.Empty;
+    public byte[] PdfBytes { get; set; } = Array.Empty<byte>();
+    public string PdfFilename { get; set; } = "certificate.pdf";
     public string? CertificateNo { get; set; }
 }
 

@@ -18,7 +18,7 @@ public class OneDriveService : IOneDriveService
         _config = config;
     }
 
-    public async Task<OneDriveUploadResult> ArchiveTrainingCertificatesAsync(
+    private async Task<OneDriveUploadResult> ArchiveTrainingCertificatesAsync(
         int trainingId, string companyName, string trainingName, DateTime trainingDate)
     {
         var account = await _accountService.GetDefaultAccountAsync();
@@ -101,7 +101,7 @@ public class OneDriveService : IOneDriveService
         return result;
     }
 
-    public async Task<byte[]?> DownloadFileAsync(string fileId)
+    private async Task<byte[]?> DownloadFileAsync(string fileId)
     {
         var account = await _accountService.GetDefaultAccountAsync();
         if (account == null) return null;
@@ -128,7 +128,7 @@ public class OneDriveService : IOneDriveService
         }
     }
 
-    public async Task<string?> GetDownloadUrlAsync(string fileId)
+    private async Task<string?> GetDownloadUrlAsync(string fileId)
     {
         var account = await _accountService.GetDefaultAccountAsync();
         if (account == null) return null;
