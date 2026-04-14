@@ -12,40 +12,48 @@
 
     <div class="row g-4" data-bind="visible: !isLoading()">
         <div class="col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="bi bi-mortarboard display-4 text-primary"></i>
-                    <h3 class="mt-2" data-bind="text: trainingCount">0</h3>
-                    <p class="text-muted mb-0">Egitimler</p>
+            <a asp-controller="Panel" asp-action="Trainings" class="text-decoration-none">
+                <div class="card text-center shadow-sm dashboard-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-mortarboard display-4 text-primary"></i>
+                        <h3 class="mt-2" data-bind="text: trainingCount">0</h3>
+                        <p class="text-muted mb-0">Egitimler</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="bi bi-layout-text-window display-4 text-success"></i>
-                    <h3 class="mt-2" data-bind="text: templateCount">0</h3>
-                    <p class="text-muted mb-0">Sablonlar</p>
+            <a asp-controller="Panel" asp-action="Templates" class="text-decoration-none">
+                <div class="card text-center shadow-sm dashboard-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-layout-text-window display-4 text-success"></i>
+                        <h3 class="mt-2" data-bind="text: templateCount">0</h3>
+                        <p class="text-muted mb-0">Sablonlar</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="bi bi-pen display-4 text-warning"></i>
-                    <h3 class="mt-2" data-bind="text: signatureCount">0</h3>
-                    <p class="text-muted mb-0">Imzalar</p>
+            <a asp-controller="Panel" asp-action="Signatures" class="text-decoration-none">
+                <div class="card text-center shadow-sm dashboard-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-pen display-4 text-warning"></i>
+                        <h3 class="mt-2" data-bind="text: signatureCount">0</h3>
+                        <p class="text-muted mb-0">Imzalar</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="bi bi-building display-4 text-info"></i>
-                    <h3 class="mt-2" data-bind="text: companyCount">0</h3>
-                    <p class="text-muted mb-0">Firmalar</p>
+            <a asp-controller="Panel" asp-action="Companies" class="text-decoration-none">
+                <div class="card text-center shadow-sm dashboard-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-building display-4 text-info"></i>
+                        <h3 class="mt-2" data-bind="text: companyCount">0</h3>
+                        <p class="text-muted mb-0">Firmalar</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 </div>

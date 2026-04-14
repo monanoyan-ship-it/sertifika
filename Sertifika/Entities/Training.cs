@@ -6,6 +6,7 @@ public class Training : BaseEntity
     public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public DateTime TrainingDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? CompanyName { get; set; }
     public TrainingStatus Status { get; set; } = TrainingStatus.Draft;
 
@@ -14,6 +15,19 @@ public class Training : BaseEntity
 
     public ICollection<TrainingSignature> TrainingSignatures { get; set; } = new List<TrainingSignature>();
     public ICollection<Participant> Participants { get; set; } = new List<Participant>();
+
+    public string FormatDateRange()
+    {
+        var start = TrainingDate;
+        var end = EndDate;
+        if (end == null || end.Value.Date == start.Date)
+            return start.ToString("dd.MM.yyyy");
+        if (end.Value.Year == start.Year && end.Value.Month == start.Month)
+            return $"{start:dd}-{end.Value:dd}.{start:MM.yyyy}";
+        if (end.Value.Year == start.Year)
+            return $"{start:dd.MM}-{end.Value:dd.MM}.{start:yyyy}";
+        return $"{start:dd.MM.yyyy}-{end.Value:dd.MM.yyyy}";
+    }
 }
 
 public class TrainingSignature : BaseEntity

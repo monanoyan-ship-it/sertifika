@@ -23,7 +23,11 @@ public class OneDriveAccountCrudFactory : IOneDriveAccountCrudFactory
 
     public async Task<OneDriveAccount> CreateAccountAsync(OneDriveAccount account)
     {
-        // If first account or marked as default, ensure only one default
+        var existing = (await _accountService.GetActiveAccountsAsync()).ToList();
+
+        if (existing.Count == 0 || !existing.Any(a => a.IsDefault))
+            account.IsDefault = true;
+
         if (account.IsDefault)
             await ClearDefaultAsync();
 
@@ -42,6 +46,8 @@ public class OneDriveAccountCrudFactory : IOneDriveAccountCrudFactory
         existing.ClientId = account.ClientId;
         existing.ClientSecret = account.ClientSecret;
         existing.DriveUserId = account.DriveUserId;
+        existing.RefreshToken = account.RefreshToken;
+        existing.DriveId = account.DriveId;
         existing.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.SaveChangesAsync();

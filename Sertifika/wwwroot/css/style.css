@@ -1,5 +1,22 @@
 /* Sertifika Sistemi - Custom Styles (Bootstrap 5 supplement) */
 
+/* Layout */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+main { flex: 1 0 auto; }
+footer { flex-shrink: 0; }
+
+/* Dashboard Cards - clickable */
+.dashboard-card {
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+}
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.12) !important;
+}
+
+
 /* Editor Canvas */
 #editor-canvas {
     min-height: 400px;

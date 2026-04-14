@@ -581,8 +581,7 @@ function TemplateEditorViewModel() {
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(body),
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-            xhrFields: { responseType: 'blob' }
+            xhrFields: { responseType: 'blob', withCredentials: true }
         })
         .done(function(blob) {
             var url = URL.createObjectURL(blob);

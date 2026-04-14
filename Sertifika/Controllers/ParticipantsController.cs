@@ -33,9 +33,16 @@ public class ParticipantsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Admin,CertificateCreator")]
-    public async Task<ActionResult<Participant>> CreateParticipant(int trainingId, [FromBody] Participant participant)
+    public async Task<ActionResult<Participant>> CreateParticipant(int trainingId, [FromBody] ParticipantUpsertRequest request)
     {
-        participant.TrainingId = trainingId;
+        var participant = new Participant
+        {
+            TrainingId = trainingId,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            CompanyName = request.CompanyName
+        };
         var created = await _crud.CreateParticipantAsync(participant);
         return CreatedAtAction(nameof(GetParticipant), new { trainingId, id = created.Id }, created);
     }
@@ -65,10 +72,17 @@ public class ParticipantsController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,CertificateCreator")]
-    public async Task<IActionResult> UpdateParticipant(int trainingId, int id, [FromBody] Participant participant)
+    public async Task<IActionResult> UpdateParticipant(int trainingId, int id, [FromBody] ParticipantUpsertRequest request)
     {
-        if (id != participant.Id) return BadRequest();
-        participant.TrainingId = trainingId;
+        var participant = new Participant
+        {
+            Id = id,
+            TrainingId = trainingId,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            CompanyName = request.CompanyName
+        };
         await _crud.UpdateParticipantAsync(participant);
         return NoContent();
     }
@@ -81,4 +95,22 @@ public class ParticipantsController : ControllerBase
         if (!found) return NotFound();
         return NoContent();
     }
+
+    [HttpGet("excel-template")]
+    [Authorize(Roles = "Admin,CertificateCreator")]
+    public IActionResult DownloadExcelTemplate()
+    {
+        var bytes = _crud.BuildExcelTemplate();
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "katilimci_sablonu.xlsx");
+    }
+}
+
+public class ParticipantUpsertRequest
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? CompanyName { get; set; }
 }

@@ -9,26 +9,22 @@ toastr.options = {
     timeOut: 4000
 };
 
-// Auth
-function getToken() { return localStorage.getItem('token'); }
-function setToken(token) { localStorage.setItem('token', token); }
-function removeToken() { localStorage.removeItem('token'); }
-function isLoggedIn() { return !!getToken(); }
+// Current user info (set by page-level script after /auth/me)
+var CURRENT_USER = null;
 
-function requireAuth() {
-    if (!isLoggedIn()) {
-        window.location.href = '/Panel/Login';
-        return false;
-    }
-    return true;
+// Cookie helpers (for CSRF token only - auth uses HttpOnly cookie)
+function getCookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.\$\?\*\|\{\}\(\)\[\]\\\/\+\^])/g, '\\$1') + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
 }
 
-// AJAX - auto Bearer token
+// AJAX defaults - auth via HttpOnly cookie (auto-sent). CSRF via header.
 $.ajaxSetup({
-    beforeSend: function(xhr) {
-        var token = getToken();
-        if (token) {
-            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    xhrFields: { withCredentials: true },
+    beforeSend: function(xhr, settings) {
+        if (/^(POST|PUT|DELETE|PATCH)$/i.test(settings.type || '')) {
+            var csrf = getCookie('XSRF-TOKEN');
+            if (csrf) xhr.setRequestHeader('X-XSRF-TOKEN', csrf);
         }
     }
 });
@@ -36,8 +32,7 @@ $.ajaxSetup({
 // Global 401 handler
 $(document).ajaxError(function(event, xhr) {
     if (xhr.status === 401) {
-        removeToken();
-        localStorage.removeItem('user');
+        CURRENT_USER = null;
         toastr.error('Oturum suresi doldu');
         setTimeout(function() { window.location.href = '/Panel/Login'; }, 1500);
     }
@@ -79,9 +74,39 @@ function apiDelete(path) {
 }
 
 function logout() {
-    removeToken();
-    localStorage.removeItem('user');
-    window.location.href = '/Panel/Login';
+    apiPost('/auth/logout').always(function() {
+        CURRENT_USER = null;
+        window.location.href = '/Panel/Login';
+    });
+}
+
+// Page-level auth check. Loads user info; redirects to login if not authenticated.
+// Pass a callback to run after auth is verified.
+function requireAuth(onReady) {
+    apiGet('/auth/me')
+        .done(function(user) {
+            CURRENT_USER = user;
+            updateNavUsername();
+            if (typeof onReady === 'function') onReady(user);
+        })
+        .fail(function(xhr) {
+            if (xhr.status === 401 || xhr.status === 403) {
+                window.location.href = '/Panel/Login';
+            } else {
+                toastr.error('Kullanici bilgisi alinamadi');
+            }
+        });
+    // Legacy callers that use `if (requireAuth()) ko.applyBindings(...)` still work
+    // because KO bindings can be applied before user info arrives.
+    return true;
+}
+
+function updateNavUsername() {
+    var el = document.getElementById('nav-username');
+    if (el && CURRENT_USER) {
+        el.innerHTML = '<i class="bi bi-person-circle me-1"></i>' +
+            CURRENT_USER.firstName + ' ' + CURRENT_USER.lastName;
+    }
 }
 
 // Confirm dialog (Bootstrap modal)
@@ -112,7 +137,106 @@ function showConfirm(message) {
     });
 }
 
+function downloadAuthedFile(url, filename) {
+    fetch(url, {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(function(res) {
+        if (!res.ok) {
+            return res.text().then(function(text) {
+                var msg = text;
+                try {
+                    var parsed = JSON.parse(text);
+                    msg = parsed.error || parsed.message || text;
+                } catch (e) {}
+                throw new Error(msg || ('HTTP ' + res.status));
+            });
+        }
+        return res.blob();
+    })
+    .then(function(blob) {
+        var blobUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+        toastr.success('Indiriliyor: ' + filename);
+    })
+    .catch(function(err) {
+        toastr.error('Indirilemedi: ' + (err.message || 'Bilinmeyen hata'));
+    });
+}
+
+// Client-side pagination helper for KO.
+// Usage in ViewModel:
+//   self.pager = makePager(self.filteredItems, 20);
+//   self.pagedItems = self.pager.pagedItems;
+// In view: bind foreach to pagedItems, render pagination with pager.pages(), pager.currentPage, pager.setPage.
+function makePager(sourceArray, pageSize) {
+    var size = ko.observable(pageSize || 20);
+    var current = ko.observable(1);
+
+    var totalPages = ko.computed(function() {
+        var total = (ko.unwrap(sourceArray) || []).length;
+        return Math.max(1, Math.ceil(total / size()));
+    });
+
+    ko.computed(function() {
+        var tp = totalPages();
+        if (current() > tp) current(tp);
+    });
+
+    var pagedItems = ko.computed(function() {
+        var arr = ko.unwrap(sourceArray) || [];
+        var start = (current() - 1) * size();
+        return arr.slice(start, start + size());
+    });
+
+    var pages = ko.computed(function() {
+        var tp = totalPages();
+        var cur = current();
+        var result = [];
+        var start = Math.max(1, cur - 2);
+        var end = Math.min(tp, start + 4);
+        start = Math.max(1, end - 4);
+        for (var i = start; i <= end; i++) result.push(i);
+        return result;
+    });
+
+    return {
+        currentPage: current,
+        totalPages: totalPages,
+        pagedItems: pagedItems,
+        pages: pages,
+        setPage: function(p) {
+            var tp = totalPages();
+            var next = Math.min(tp, Math.max(1, p));
+            current(next);
+        },
+        next: function() { if (current() < totalPages()) current(current() + 1); },
+        prev: function() { if (current() > 1) current(current() - 1); }
+    };
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('tr-TR');
+}
+
+function formatDateRange(startStr, endStr) {
+    if (!startStr) return '-';
+    var start = new Date(startStr);
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var sd = pad(start.getDate()), sm = pad(start.getMonth() + 1), sy = start.getFullYear();
+    if (!endStr) return sd + '.' + sm + '.' + sy;
+    var end = new Date(endStr);
+    if (end.getTime() === start.getTime()) return sd + '.' + sm + '.' + sy;
+    var ed = pad(end.getDate()), em = pad(end.getMonth() + 1), ey = end.getFullYear();
+    if (sy === ey && sm === em) return sd + '-' + ed + '.' + sm + '.' + sy;
+    if (sy === ey) return sd + '.' + sm + '-' + ed + '.' + em + '.' + sy;
+    return sd + '.' + sm + '.' + sy + '-' + ed + '.' + em + '.' + ey;
 }

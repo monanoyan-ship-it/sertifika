@@ -65,6 +65,7 @@ public class TrainingsController : ControllerBase
             DisplayName = request.DisplayName,
             Description = request.Description,
             TrainingDate = request.TrainingDate,
+            EndDate = request.EndDate,
             CompanyName = request.CompanyName,
             TemplateId = request.TemplateId
         };
@@ -84,6 +85,7 @@ public class TrainingsController : ControllerBase
         training.DisplayName = request.DisplayName;
         training.Description = request.Description;
         training.TrainingDate = request.TrainingDate;
+        training.EndDate = request.EndDate;
         training.CompanyName = request.CompanyName;
         training.TemplateId = request.TemplateId;
 
@@ -251,6 +253,7 @@ public class CreateTrainingRequest
     public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public DateTime TrainingDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? CompanyName { get; set; }
     public int TemplateId { get; set; }
 }
@@ -261,6 +264,7 @@ public class UpdateTrainingRequest
     public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public DateTime TrainingDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? CompanyName { get; set; }
     public int TemplateId { get; set; }
 }

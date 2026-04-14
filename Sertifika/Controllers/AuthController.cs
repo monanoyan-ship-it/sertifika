@@ -9,6 +9,7 @@ namespace Sertifika.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    private const string AuthCookieName = "auth_token";
     private readonly IAuthFactory _auth;
 
     public AuthController(IAuthFactory auth)
@@ -21,7 +22,9 @@ public class AuthController : ControllerBase
     {
         var (success, result) = await _auth.LoginAsync(request.Email, request.Password);
         if (!success) return Unauthorized(result);
-        return Ok(result);
+
+        SetAuthCookie(result);
+        return Ok(StripToken(result));
     }
 
     [HttpPost("register")]
@@ -29,7 +32,22 @@ public class AuthController : ControllerBase
     {
         var (success, result) = await _auth.RegisterAsync(request.FirstName, request.LastName, request.Email, request.Password);
         if (!success) return BadRequest(result);
-        return Ok(result);
+
+        SetAuthCookie(result);
+        return Ok(StripToken(result));
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete(AuthCookieName, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/"
+        });
+        return Ok(new { message = "Cikis yapildi." });
     }
 
     [HttpGet("me")]
@@ -42,6 +60,27 @@ public class AuthController : ControllerBase
         var user = await _auth.GetCurrentUserAsync(int.Parse(userIdClaim));
         if (user == null) return NotFound();
         return Ok(user);
+    }
+
+    private void SetAuthCookie(object result)
+    {
+        var token = result.GetType().GetProperty("token")?.GetValue(result) as string;
+        if (string.IsNullOrEmpty(token)) return;
+
+        Response.Cookies.Append(AuthCookieName, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(7)
+        });
+    }
+
+    private static object StripToken(object result)
+    {
+        var userProp = result.GetType().GetProperty("user")?.GetValue(result);
+        return new { user = userProp };
     }
 }
 

@@ -55,7 +55,7 @@
             <div class="border rounded bg-white position-relative overflow-hidden" id="editor-canvas"
                  data-bind="css: { 'editor-landscape': orientation() === '0', 'editor-portrait': orientation() === '1' }, click: function(d,e) { if (e.target.id === 'editor-canvas' || e.target.id === 'editor-bg') clearSelection(); }">
                 <img id="editor-bg" class="position-absolute w-100 h-100" style="object-fit: cover; top:0; left:0;"
-                     data-bind="attr: { src: backgroundPreview }, visible: backgroundPreview()" alt="">
+                     data-bind="attr: { src: backgroundPreview }, visible: backgroundPreview()" loading="lazy" alt="Sertifika arka plani">
             </div>
             <!-- Legend -->
             <div class="mt-2 d-flex gap-3 small text-muted" data-bind="visible: templateSignatures().length > 0">
@@ -219,7 +219,7 @@
                     </div>
                     <!-- ko if: signature.imageUrl -->
                     <div class="text-center mt-2">
-                        <img data-bind="attr: { src: signature.imageUrl }" class="img-fluid border rounded" style="max-height: 50px;" alt="">
+                        <img data-bind="attr: { src: signature.imageUrl }" class="img-fluid border rounded" style="max-height: 50px;" loading="lazy" alt="Imza onizlemesi">
                     </div>
                     <!-- /ko -->
                 </div>

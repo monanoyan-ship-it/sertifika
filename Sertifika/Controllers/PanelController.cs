@@ -74,4 +74,17 @@ public class PanelController : Controller
         SetViewData("settings", "Ayarlar");
         return View();
     }
+
+    public IActionResult OAuthCallback()
+    {
+        return View();
+    }
+
+    [Microsoft.AspNetCore.Mvc.Route("Panel/Error/{code:int}")]
+    public IActionResult Error(int code)
+    {
+        Response.StatusCode = code;
+        ViewData["StatusCode"] = code;
+        return View("Error");
+    }
 }

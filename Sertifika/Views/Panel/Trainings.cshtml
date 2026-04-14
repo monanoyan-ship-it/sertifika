@@ -31,12 +31,12 @@
                     <th style="width: 150px;" class="text-end">Islem</th>
                 </tr>
             </thead>
-            <tbody data-bind="foreach: filteredTrainings">
+            <tbody data-bind="foreach: pager.pagedItems">
                 <tr>
                     <td data-bind="text: name"></td>
                     <td class="text-muted" data-bind="text: displayName || '-'"></td>
                     <td class="text-muted" data-bind="text: companyName || '-'"></td>
-                    <td class="text-muted" data-bind="text: $parent.formatDate(trainingDate)"></td>
+                    <td class="text-muted" data-bind="text: $parent.formatDateRange(trainingDate, endDate)"></td>
                     <td>
                         <span class="badge bg-secondary" data-bind="text: (participants && participants.length) || 0"></span>
                     </td>
@@ -59,6 +59,22 @@
         </table>
     </div>
 
+    <nav data-bind="visible: !isLoading() && pager.totalPages() > 1" aria-label="Sayfalama" class="mt-3">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" data-bind="css: { disabled: pager.currentPage() === 1 }">
+                <a class="page-link" href="#" data-bind="click: pager.prev">&laquo;</a>
+            </li>
+            <!-- ko foreach: pager.pages() -->
+            <li class="page-item" data-bind="css: { active: $data === $parent.pager.currentPage() }">
+                <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.pager.setPage($data); }"></a>
+            </li>
+            <!-- /ko -->
+            <li class="page-item" data-bind="css: { disabled: pager.currentPage() === pager.totalPages() }">
+                <a class="page-link" href="#" data-bind="click: pager.next">&raquo;</a>
+            </li>
+        </ul>
+    </nav>
+
     <div data-bind="visible: !isLoading() && filteredTrainings().length === 0" class="text-center py-5 text-muted">
         <i class="bi bi-mortarboard display-1"></i>
         <p class="mt-2">Henuz egitim yok.</p>
@@ -66,64 +82,109 @@
 
     <!-- Create/Edit Modal -->
     <div class="modal fade" id="formModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" data-bind="text: isEditing() ? 'Egitim Duzenle' : 'Yeni Egitim'"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="bi bi-mortarboard-fill me-2"></i>
+                        <span data-bind="text: isEditing() ? 'Egitim Duzenle' : 'Yeni Egitim Olustur'"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: saveTraining">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Egitim Adi</label>
-                                <input type="text" class="form-control" data-bind="textInput: formName" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Belge Uzerindeki Ad</label>
-                                <input type="text" class="form-control" data-bind="textInput: formDisplayName" placeholder="Bos birakilirsa egitim adi kullanilir">
+                    <div class="modal-body p-4">
+                        <!-- Temel Bilgiler -->
+                        <div class="mb-4">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                                <i class="bi bi-info-circle me-1"></i>Temel Bilgiler
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Egitim Adi <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-bookmark"></i></span>
+                                        <input type="text" class="form-control" data-bind="textInput: formName" placeholder="Orn. Is Guvenligi Egitimi" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Belge Uzerindeki Ad</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-file-text"></i></span>
+                                        <input type="text" class="form-control" data-bind="textInput: formDisplayName" placeholder="Bos birakilirsa egitim adi kullanilir">
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Aciklama</label>
+                                    <textarea class="form-control" rows="2" data-bind="textInput: formDescription" placeholder="Egitim hakkinda kisa aciklama (opsiyonel)"></textarea>
+                                </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tarih</label>
-                                <input type="date" class="form-control" data-bind="value: formTrainingDate" required>
+
+                        <!-- Tarih & Firma -->
+                        <div class="mb-4">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                                <i class="bi bi-calendar-event me-1"></i>Tarih ve Firma
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Baslangic Tarihi <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" data-bind="value: formTrainingDate" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">
+                                        Bitis Tarihi
+                                        <i class="bi bi-info-circle text-muted" title="Cok gunlu egitimler icin - bos birakilabilir"></i>
+                                    </label>
+                                    <input type="date" class="form-control" data-bind="value: formEndDate" placeholder="Opsiyonel">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Firma Adi</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
+                                        <input type="text" class="form-control" data-bind="textInput: formCompanyName" placeholder="ABC Ltd.">
+                                    </div>
+                                </div>
+                                <div class="col-12" data-bind="visible: formTrainingDate()">
+                                    <div class="alert alert-info small py-2 mb-0">
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        Sertifikada tarih olarak goruntulenecek: <strong data-bind="text: datePreview()"></strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Aciklama</label>
-                            <textarea class="form-control" rows="2" data-bind="textInput: formDescription"></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Firma Adi</label>
-                                <input type="text" class="form-control" data-bind="textInput: formCompanyName">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Sablon</label>
+
+                        <!-- Sablon & Imzalar -->
+                        <div class="mb-2">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                                <i class="bi bi-card-checklist me-1"></i>Sablon ve Imzalar
+                            </h6>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Sertifika Sablonu <span class="text-danger">*</span></label>
                                 <select class="form-select" data-bind="options: availableTemplates, optionsText: 'name', optionsValue: 'id', value: formTemplateId"></select>
                             </div>
-                        </div>
-                        <!-- Template signatures preview -->
-                        <div data-bind="visible: selectedTemplateSignatures().length > 0">
-                            <label class="form-label text-muted">Sablondaki Imzalar</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                <!-- ko foreach: selectedTemplateSignatures -->
-                                <span class="badge bg-light text-dark border">
-                                    <i class="bi bi-pen me-1"></i>
+                            <div data-bind="visible: selectedTemplateSignatures().length > 0">
+                                <label class="form-label small text-muted">Sablondaki Imzalar</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <!-- ko foreach: selectedTemplateSignatures -->
+                                    <span class="badge bg-light text-dark border py-2 px-3">
+                                        <i class="bi bi-pen me-1"></i>
                                         <span data-bind="text: (instructorName || signature.name) + ' (' + (instructorTitle || signature.title) + ')'"></span>
-                                </span>
-                                <!-- /ko -->
+                                    </span>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
+                            <div data-bind="visible: formTemplateId() && selectedTemplateSignatures().length === 0" class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>Bu sablona henuz imza atanmamis.
                             </div>
                         </div>
-                        <div data-bind="visible: formTemplateId() && selectedTemplateSignatures().length === 0" class="text-muted small">
-                            <i class="bi bi-info-circle me-1"></i>Bu sablona henuz imza atanmamis.
-                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i>Iptal
+                        </button>
                         <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
                             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>
                             <span data-bind="text: isEditing() ? 'Guncelle' : 'Olustur'"></span>
                         </button>
                     </div>

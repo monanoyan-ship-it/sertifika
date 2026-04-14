@@ -7,10 +7,16 @@
 
     <!-- OneDrive Accounts -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>OneDrive Hesaplari</h4>
-        <button class="btn btn-primary" data-bind="click: openCreateModal">
-            <i class="bi bi-plus-circle me-1"></i> Yeni Hesap
-        </button>
+        <h4><i class="bi bi-cloud me-2"></i>OneDrive Hesaplari</h4>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" data-bind="click: testConnection, disable: isTesting">
+                <span data-bind="visible: isTesting" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-plug me-1" data-bind="visible: !isTesting()"></i>Baglanti Test
+            </button>
+            <button class="btn btn-primary" data-bind="click: openCreateModal">
+                <i class="bi bi-plus-circle me-1"></i> Yeni Hesap
+            </button>
+        </div>
     </div>
 
     <div data-bind="visible: isLoading" class="text-center py-5">
@@ -23,13 +29,22 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <h5 class="card-title" data-bind="text: name"></h5>
-                        <!-- ko if: isDefault -->
-                        <span class="badge bg-success">Varsayilan</span>
-                        <!-- /ko -->
+                        <div class="d-flex gap-1">
+                            <!-- ko if: hasRefreshToken -->
+                            <span class="badge bg-primary">OAuth</span>
+                            <!-- /ko -->
+                            <!-- ko if: isDefault -->
+                            <span class="badge bg-success">Varsayilan</span>
+                            <!-- /ko -->
+                        </div>
                     </div>
-                    <p class="mb-1 small"><strong>Tenant:</strong> <code data-bind="text: tenantId"></code></p>
-                    <p class="mb-1 small"><strong>Client:</strong> <code data-bind="text: clientId"></code></p>
+                    <p class="mb-1 small"><strong>Tenant:</strong> <code data-bind="text: tenantId || 'common'"></code></p>
+                    <!-- ko if: driveId -->
+                    <p class="mb-0 small"><strong>Drive ID:</strong> <code data-bind="text: driveId"></code></p>
+                    <!-- /ko -->
+                    <!-- ko if: !driveId && driveUserId -->
                     <p class="mb-0 small"><strong>Drive User:</strong> <code data-bind="text: driveUserId"></code></p>
+                    <!-- /ko -->
                 </div>
                 <div class="card-footer bg-transparent d-flex gap-2 justify-content-end">
                     <!-- ko ifnot: isDefault -->
@@ -100,44 +115,104 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Yeni OneDrive Hesabi</h5>
+                    <h5 class="modal-title"><i class="bi bi-cloud me-2"></i>OneDrive Hesabi Ekle</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form data-bind="submit: saveAccount">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Hesap Adi</label>
-                            <input type="text" class="form-control" data-bind="textInput: formName" required>
+                <div class="modal-body">
+                    <!-- Tab Buttons -->
+                    <ul class="nav nav-pills mb-3">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bind="css: { active: odTab() === 'easy' }, click: function() { odTab('easy'); }">
+                                <i class="bi bi-lightning me-1"></i>Kolay Baglanti
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bind="css: { active: odTab() === 'advanced' }, click: function() { odTab('advanced'); }">
+                                <i class="bi bi-gear me-1"></i>Gelismis
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Kolay Baglanti Tab -->
+                    <div data-bind="visible: odTab() === 'easy'">
+                        <!-- Baglanti Oncesi -->
+                        <div data-bind="visible: !odConnected()">
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Microsoft hesabinizla giris yaparak OneDrive'inizi kolayca baglayabilirsiniz.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tenant ID <small class="text-muted">(opsiyonel - bos birakirsaniz "common" kullanilir)</small></label>
+                                <input type="text" class="form-control" data-bind="textInput: formTenantId" placeholder="common">
+                            </div>
+                            <button class="btn btn-primary w-100" data-bind="click: startOAuth, disable: odAuthLoading">
+                                <span data-bind="visible: odAuthLoading" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-microsoft me-1" data-bind="visible: !odAuthLoading()"></i>
+                                Microsoft ile Baglan
+                            </button>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tenant ID</label>
-                            <input type="text" class="form-control" data-bind="textInput: formTenantId" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client ID</label>
-                            <input type="text" class="form-control" data-bind="textInput: formClientId" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client Secret</label>
-                            <input type="password" class="form-control" data-bind="textInput: formClientSecret" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Drive User ID</label>
-                            <input type="text" class="form-control" data-bind="textInput: formDriveUserId" required>
-                        </div>
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="od-default" data-bind="checked: formIsDefault">
-                            <label class="form-check-label" for="od-default">Varsayilan hesap</label>
+
+                        <!-- Baglanti Sonrasi -->
+                        <div data-bind="visible: odConnected">
+                            <div class="alert alert-success small">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Microsoft hesabi basariyla baglandi!
+                                <a href="#" class="float-end" data-bind="click: reconnect">Yeniden Baglan</a>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Hesap Adi</label>
+                                <input type="text" class="form-control" data-bind="textInput: formName" placeholder="Sirket OneDrive" required>
+                            </div>
+                            <div class="mb-3" data-bind="visible: odDrives().length > 0">
+                                <label class="form-label">Drive Secin</label>
+                                <select class="form-select" data-bind="options: odDrives, optionsText: function(d) { return d.name + ' (' + d.driveType + ')' + (d.ownerName ? ' - ' + d.ownerName : ''); }, optionsValue: 'driveId', value: odSelectedDrive"></select>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="od-default-easy" data-bind="checked: formIsDefault">
+                                <label class="form-check-label" for="od-default-easy">Varsayilan hesap</label>
+                            </div>
+                            <button class="btn btn-success w-100" data-bind="click: saveOAuthAccount, disable: isSaving">
+                                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>
+                                Kaydet
+                            </button>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
-                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                            Kaydet
-                        </button>
+
+                    <!-- Gelismis Tab -->
+                    <div data-bind="visible: odTab() === 'advanced'">
+                        <form data-bind="submit: saveAccount">
+                            <div class="mb-3">
+                                <label class="form-label">Hesap Adi</label>
+                                <input type="text" class="form-control" data-bind="textInput: formName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tenant ID</label>
+                                <input type="text" class="form-control" data-bind="textInput: formTenantId" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Client ID</label>
+                                <input type="text" class="form-control" data-bind="textInput: formClientId" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Client Secret</label>
+                                <input type="password" class="form-control" data-bind="textInput: formClientSecret" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Drive User ID</label>
+                                <input type="text" class="form-control" data-bind="textInput: formDriveUserId" required>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="od-default-adv" data-bind="checked: formIsDefault">
+                                <label class="form-check-label" for="od-default-adv">Varsayilan hesap</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" data-bind="disable: isSaving">
+                                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                                Kaydet
+                            </button>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

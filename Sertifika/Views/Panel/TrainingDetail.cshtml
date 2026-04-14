@@ -24,7 +24,7 @@
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3"><strong>Tarih:</strong> <span data-bind="text: $parent.formatDate(trainingDate)"></span></div>
+                    <div class="col-md-3"><strong>Tarih:</strong> <span data-bind="text: $parent.formatDateRange(trainingDate, endDate)"></span></div>
                     <div class="col-md-3"><strong>Firma:</strong> <span data-bind="text: companyName || '-'"></span></div>
                     <div class="col-md-3"><strong>Sablon:</strong> <span data-bind="text: template ? template.name : '-'"></span></div>
                     <div class="col-md-3"><strong>Imzalar:</strong> <span data-bind="text: trainingSignatures ? trainingSignatures.map(function(ts) { return ts.signature ? ts.signature.name : ''; }).join(', ') : '-'"></span></div>
@@ -185,6 +185,13 @@
                 </div>
                 <form data-bind="submit: uploadExcel">
                     <div class="modal-body">
+                        <div class="alert alert-info small py-2 mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Dosya 4 sutundan olusmalidir: Ad, Soyad, Email, Firma.
+                            <a href="#" data-bind="click: downloadExcelTemplate" class="fw-semibold">
+                                <i class="bi bi-download me-1"></i>Sablon indir
+                            </a>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Excel Dosyasi (.xlsx)</label>
                             <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls" required>

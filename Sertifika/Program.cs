@@ -1,6 +1,7 @@
 using System.Text;
 using Sertifika.Context;
 using Sertifika.DependencyInjection;
+using Sertifika.Middleware;
 using Sertifika.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,8 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 // Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// OneDrive Service
+// OneDrive Services
+builder.Services.AddSingleton<OneDriveOAuthService>();
 builder.Services.AddScoped<IOneDriveService, OneDriveService>();
 
 // PDF Service (Python)
@@ -58,10 +60,20 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
-            if (!string.IsNullOrEmpty(accessToken))
+            if (string.IsNullOrEmpty(context.Token))
             {
-                context.Token = accessToken;
+                var cookieToken = context.Request.Cookies["auth_token"];
+                if (!string.IsNullOrEmpty(cookieToken))
+                {
+                    context.Token = cookieToken;
+                    return Task.CompletedTask;
+                }
+
+                var queryToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(queryToken))
+                {
+                    context.Token = queryToken;
+                }
             }
             return Task.CompletedTask;
         }
@@ -69,6 +81,16 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// CSRF / Antiforgery
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN-SERVER";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.SuppressXFrameOptionsHeader = true;
+});
 
 // Controllers + MVC Views
 builder.Services.AddControllersWithViews()
@@ -116,12 +138,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler("/Panel/Error/500");
+}
+
+app.UseStatusCodePagesWithReExecute("/Panel/Error/{0}");
 
 app.UseHttpsRedirection();
+app.UseSecurityHeaders();
 app.UseCors("AllowAll");
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgeryTokens();
 app.MapControllers();
 app.MapControllerRoute(name: "default", pattern: "{controller=Panel}/{action=Login}/{id?}");
 

@@ -37,7 +37,7 @@
                 <tr>
                     <td>
                         <!-- ko if: imageUrl -->
-                        <img data-bind="attr: { src: imageUrl }" style="max-height: 32px;" alt="">
+                        <img data-bind="attr: { src: imageUrl }" style="max-height: 32px;" loading="lazy" alt="Imza">
                         <!-- /ko -->
                         <!-- ko ifnot: imageUrl -->
                         <i class="bi bi-pen text-muted"></i>

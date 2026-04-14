@@ -1,0 +1,38 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth Callback</title>
+</head>
+<body>
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
+        <div id="msg" style="text-align:center;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Yetkilendirme tamamlaniyor...</p>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var provider = params.get('provider') || 'onedrive';
+            var code = params.get('code');
+            var error = params.get('error');
+
+            if (window.opener) {
+                if (code) {
+                    window.opener.postMessage({ type: provider + '-auth-success', code: code }, '*');
+                } else {
+                    window.opener.postMessage({ type: provider + '-auth-error', error: error || 'Bilinmeyen hata' }, '*');
+                }
+                setTimeout(function() { window.close(); }, 500);
+            } else {
+                document.getElementById('msg').innerHTML = code
+                    ? '<p style="color:green;">Yetkilendirme basarili! Bu pencereyi kapatabilirsiniz.</p>'
+                    : '<p style="color:red;">Hata: ' + (error || 'Bilinmeyen hata') + '</p>';
+            }
+        })();
+    </script>
+</body>
+</html>

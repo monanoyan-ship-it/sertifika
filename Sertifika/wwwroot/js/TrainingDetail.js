@@ -19,6 +19,7 @@ function TrainingDetailViewModel() {
     var participantModal, excelModal, sendContactModal;
 
     self.formatDate = function(dateStr) { return formatDate(dateStr); };
+    self.formatDateRange = function(start, end) { return formatDateRange(start, end); };
 
     self.getStatusLabel = function(status) {
         return { 0: 'Taslak', 1: 'Hazir', 2: 'Uretildi', 3: 'Dagitildi' }[status] || '';
@@ -164,25 +165,21 @@ function TrainingDetailViewModel() {
     };
 
     self.previewCertificate = function() {
-        window.open(API_BASE + '/trainings/' + trainingId + '/preview?access_token=' + getToken(), '_blank');
+        window.open(API_BASE + '/trainings/' + trainingId + '/preview', '_blank');
     };
 
     self.downloadZip = function() {
-        $.ajax({
-            url: API_BASE + '/trainings/' + trainingId + '/download-zip',
-            method: 'GET',
-            xhrFields: { responseType: 'blob' }
-        })
-        .done(function(blob) {
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = 'certificates_training_' + trainingId + '.zip';
-            a.click();
-            URL.revokeObjectURL(url);
-            toastr.success('ZIP indiriliyor');
-        })
-        .fail(function() { toastr.error('ZIP indirilemedi'); });
+        downloadAuthedFile(
+            API_BASE + '/trainings/' + trainingId + '/download-zip',
+            'certificates_training_' + trainingId + '.zip'
+        );
+    };
+
+    self.downloadExcelTemplate = function() {
+        downloadAuthedFile(
+            API_BASE + '/trainings/' + trainingId + '/participants/excel-template',
+            'katilimci_sablonu.xlsx'
+        );
     };
 
     self.sendCertificates = function() {

@@ -101,4 +101,36 @@ public class ParticipantCrudFactory : IParticipantCrudFactory
         await _unitOfWork.SaveChangesAsync();
         return true;
     }
+
+    public byte[] BuildExcelTemplate()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Katilimcilar");
+
+        ws.Cell(1, 1).Value = "Ad";
+        ws.Cell(1, 2).Value = "Soyad";
+        ws.Cell(1, 3).Value = "Email";
+        ws.Cell(1, 4).Value = "Firma";
+
+        var header = ws.Range(1, 1, 1, 4);
+        header.Style.Font.Bold = true;
+        header.Style.Fill.BackgroundColor = XLColor.LightGray;
+        header.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+        ws.Cell(2, 1).Value = "Ahmet";
+        ws.Cell(2, 2).Value = "Yilmaz";
+        ws.Cell(2, 3).Value = "ahmet@firma.com";
+        ws.Cell(2, 4).Value = "ABC Ltd.";
+
+        ws.Cell(3, 1).Value = "Ayse";
+        ws.Cell(3, 2).Value = "Demir";
+        ws.Cell(3, 3).Value = "ayse@firma.com";
+        ws.Cell(3, 4).Value = "XYZ A.S.";
+
+        ws.Columns().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
 }

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Sertifika.Controllers;
 
 [ApiController]
-[Route("api/certificates")]
+[Route("api/certificates/verify")]
 public class VerifyController : ControllerBase
 {
     private readonly IParticipantEntityService _participantService;
@@ -23,7 +23,7 @@ public class VerifyController : ControllerBase
         _env = env;
     }
 
-    [HttpGet("verify/{certificateNumber}")]
+    [HttpGet("{certificateNumber}")]
     public async Task<IActionResult> Verify(string certificateNumber)
     {
         var participant = await _participantService.GetByCertificateNumberAsync(certificateNumber);
@@ -46,7 +46,7 @@ public class VerifyController : ControllerBase
         });
     }
 
-    [HttpGet("download/{certificateNumber}")]
+    [HttpGet("~/api/certificates/download/{certificateNumber}")]
     public async Task<IActionResult> Download(string certificateNumber)
     {
         var participant = await _participantService.GetByCertificateNumberAsync(certificateNumber);

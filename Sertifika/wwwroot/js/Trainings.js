@@ -12,6 +12,7 @@ function TrainingsViewModel() {
     self.formDisplayName = ko.observable('');
     self.formDescription = ko.observable('');
     self.formTrainingDate = ko.observable('');
+    self.formEndDate = ko.observable('');
     self.formCompanyName = ko.observable('');
     self.formTemplateId = ko.observable(null);
     self.availableTemplates = ko.observableArray([]);
@@ -26,6 +27,8 @@ function TrainingsViewModel() {
         });
     });
 
+    self.pager = makePager(self.filteredTrainings, 20);
+
     self.selectedTemplateSignatures = ko.computed(function() {
         var tid = self.formTemplateId();
         if (!tid) return [];
@@ -37,6 +40,11 @@ function TrainingsViewModel() {
     var formModal;
 
     self.formatDate = function(dateStr) { return formatDate(dateStr); };
+    self.formatDateRange = function(start, end) { return formatDateRange(start, end); };
+
+    self.datePreview = ko.computed(function() {
+        return formatDateRange(self.formTrainingDate(), self.formEndDate());
+    });
 
     self.getStatusLabel = function(status) {
         return { 0: 'Taslak', 1: 'Hazir', 2: 'Uretildi', 3: 'Dagitildi' }[status] || '';
@@ -66,6 +74,7 @@ function TrainingsViewModel() {
         self.formDisplayName('');
         self.formDescription('');
         self.formTrainingDate('');
+        self.formEndDate('');
         self.formCompanyName('');
         self.formTemplateId(null);
 
@@ -87,6 +96,7 @@ function TrainingsViewModel() {
         self.formDisplayName(training.displayName || '');
         self.formDescription(training.description || '');
         self.formTrainingDate(training.trainingDate ? training.trainingDate.substring(0, 10) : '');
+        self.formEndDate(training.endDate ? training.endDate.substring(0, 10) : '');
         self.formCompanyName(training.companyName || '');
 
         apiGet('/templates')
@@ -105,6 +115,7 @@ function TrainingsViewModel() {
             displayName: self.formDisplayName() || null,
             description: self.formDescription(),
             trainingDate: self.formTrainingDate() + 'T00:00:00Z',
+            endDate: self.formEndDate() ? self.formEndDate() + 'T00:00:00Z' : null,
             companyName: self.formCompanyName(),
             templateId: parseInt(self.formTemplateId())
         };

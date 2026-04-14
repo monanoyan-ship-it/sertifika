@@ -11,6 +11,7 @@ public interface IParticipantCrudFactory
     Task<int> ImportFromExcelAsync(int trainingId, Stream excelStream);
     Task UpdateParticipantAsync(Participant participant);
     Task<bool> DeleteParticipantAsync(int id);
+    byte[] BuildExcelTemplate();
 }
 
 public class ParticipantImportRow

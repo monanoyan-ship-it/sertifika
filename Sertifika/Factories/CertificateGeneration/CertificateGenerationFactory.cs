@@ -123,7 +123,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             {
                 ["HolderName"] = "Ornek Ad Soyad",
                 ["TrainingName"] = training.DisplayName ?? training.Name,
-                ["TrainingDate"] = training.TrainingDate.ToString("dd.MM.yyyy"),
+                ["TrainingDate"] = training.FormatDateRange(),
                 ["CompanyName"] = training.CompanyName ?? "",
                 ["CertificateNo"] = "CERT-ONIZLEME-001",
                 ["QrCode"] = "https://sertifika.example.com/verify/CERT-ONIZLEME-001"
@@ -272,7 +272,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         {
             ["HolderName"] = $"{participant.FirstName} {participant.LastName}",
             ["TrainingName"] = training.DisplayName ?? training.Name,
-            ["TrainingDate"] = training.TrainingDate.ToString("dd.MM.yyyy"),
+            ["TrainingDate"] = training.FormatDateRange(),
             ["CompanyName"] = participant.CompanyName ?? training.CompanyName ?? "",
             ["CertificateNo"] = certNumber,
             ["QrCode"] = $"/api/certificates/verify/{certNumber}"
