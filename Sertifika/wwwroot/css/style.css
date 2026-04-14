@@ -5,6 +5,55 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 main { flex: 1 0 auto; }
 footer { flex-shrink: 0; }
 
+/* Template Editor - Guides & Snap Lines */
+#editor-canvas .guide-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+#editor-canvas .guide-margin {
+    position: absolute;
+    inset: 10% 10%;
+    border: 1px dashed rgba(108,117,125,0.35);
+}
+#editor-canvas .guide-center-v {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(108,117,125,0.25);
+}
+#editor-canvas .guide-center-h {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: rgba(108,117,125,0.25);
+}
+#editor-canvas .snap-v {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #e91e63;
+    box-shadow: 0 0 4px #e91e63;
+    z-index: 20;
+    pointer-events: none;
+}
+#editor-canvas .snap-h {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e91e63;
+    box-shadow: 0 0 4px #e91e63;
+    z-index: 20;
+    pointer-events: none;
+}
+
 /* Workflow Steps */
 .workflow-steps {
     display: flex;

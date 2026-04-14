@@ -5,11 +5,26 @@ cd /d %~dp0
 if not exist venv (
     echo Sanal ortam olusturuluyor...
     python -m venv venv
-    call venv\Scripts\activate.bat
-    pip install -r requirements.txt
-) else (
-    call venv\Scripts\activate.bat
+    if errorlevel 1 (
+        echo [HATA] venv olusturulamadi. Python yuklu mu? 'python --version' kontrol edin.
+        pause
+        exit /b 1
+    )
+    venv\Scripts\python.exe -m pip install --upgrade pip
+    venv\Scripts\python.exe -m pip install -r requirements.txt
+    if errorlevel 1 (
+        echo [HATA] Bagimliliklar yuklenemedi.
+        pause
+        exit /b 1
+    )
 )
 
-echo PDF Servisi baslatiliyor (port 5050)...
-python main.py
+echo PDF Servisi baslatiliyor (http://127.0.0.1:5050)...
+echo Durdurmak icin CTRL+C veya pencereyi kapatin.
+echo.
+venv\Scripts\python.exe main.py
+if errorlevel 1 (
+    echo.
+    echo [HATA] PDF servisi basarisiz oldu. Hata mesaji yukarida.
+    pause
+)

@@ -21,6 +21,9 @@ public class PdfFieldLayout
     public string FontColor { get; set; } = "#000000";
     public bool IsBold { get; set; }
     public bool IsItalic { get; set; }
+    public bool IsUnderline { get; set; }
+    public double? LetterSpacing { get; set; }
+    public double? LineHeight { get; set; }
     public string Alignment { get; set; } = "center";
 }
 

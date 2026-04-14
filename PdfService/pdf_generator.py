@@ -135,7 +135,9 @@ def generate_certificate_pdf(
         font_color = field.get("font_color", "#000000")
         is_bold = field.get("is_bold", False)
         is_italic = field.get("is_italic", False)
+        is_underline = field.get("is_underline", False)
         alignment = field.get("alignment", "center")
+        letter_spacing = field.get("letter_spacing")
 
         font_name = _resolve_font(font_family, is_bold, is_italic)
 
@@ -152,11 +154,32 @@ def generate_certificate_pdf(
         c.setFont(font_name, font_size)
         c.setFillColor(HexColor(font_color))
 
+        if letter_spacing is not None:
+            try:
+                c.setCharSpace(float(letter_spacing))
+            except Exception:
+                pass
+
         text_width = c.stringWidth(text, font_name, font_size)
+        if letter_spacing:
+            text_width += float(letter_spacing) * max(len(text) - 1, 0)
+
         text_x = _get_alignment_x(alignment, x, width, text_width)
         text_y = y + (height - font_size) / 2  # Vertical center
 
         c.drawString(text_x, text_y, text)
+
+        if is_underline:
+            c.setLineWidth(max(0.5, font_size * 0.06))
+            underline_y = text_y - font_size * 0.12
+            c.line(text_x, underline_y, text_x + text_width, underline_y)
+
+        # Reset letter spacing
+        if letter_spacing is not None:
+            try:
+                c.setCharSpace(0)
+            except Exception:
+                pass
 
     # Draw signatures
     if signatures:

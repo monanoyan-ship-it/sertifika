@@ -2,12 +2,13 @@
 function TemplateEditorViewModel() {
     var self = this;
 
+    // ─── State ───
     self.editorTitle = ko.observable(templateId ? 'Sablon Duzenle' : 'Yeni Sablon');
     self.templateName = ko.observable('');
     self.templateDesc = ko.observable('');
     self.orientation = ko.observable('0');
     self.backgroundPreview = ko.observable('');
-    self.backgroundImageUrl = null; // DB'deki mevcut URL
+    self.backgroundImageUrl = null;
     self.isSaving = ko.observable(false);
     self.isPreviewing = ko.observable(false);
 
@@ -15,7 +16,32 @@ function TemplateEditorViewModel() {
     self.templateSignatures = ko.observableArray([]);
     self.availableSignatures = ko.observableArray([]);
 
-    // Signatures not yet added to this template
+    self.showGuides = ko.observable(false);
+    self.useSampleData = ko.observable(false);
+
+    // ─── Font family list (kontrollu) ───
+    self.availableFonts = [
+        'Arial', 'Helvetica', 'Times', 'Courier',
+        'Georgia', 'Verdana', 'Tahoma', 'Trebuchet MS',
+        'Calibri', 'Palatino'
+    ];
+
+    // ─── Dinamik alan anahtarlari (sidebar panelinde listelenir) ───
+    self.dynamicKeys = [
+        { key: 'HolderName',     label: 'Katilimci Ad Soyad',  sample: 'Ahmet Yilmaz' },
+        { key: 'TrainingName',   label: 'Egitim Adi',          sample: 'Is Guvenligi Egitimi' },
+        { key: 'ProgramName',    label: 'Program Adi',         sample: 'Isci Saglik ve Guvenligi Programi' },
+        { key: 'TrainingDate',   label: 'Tarih',               sample: '10-11.04.2026' },
+        { key: 'CompanyName',    label: 'Firma Adi',           sample: 'ABC Ltd. Sti.' },
+        { key: 'CertificateNo',  label: 'Sertifika No',        sample: 'CERT-20260410-0001-0001' },
+        { key: 'InstructorName', label: 'Egitmen Adi',         sample: 'Dr. Mehmet Kaya' }
+    ];
+    // For dropdown in the selected field panel (exclude QrCode - that's its own type)
+    self.dynamicKeysText = self.dynamicKeys;
+
+    self.sampleValues = {};
+    self.dynamicKeys.forEach(function(d) { self.sampleValues[d.key] = d.sample; });
+
     self.addableSignatures = ko.computed(function() {
         var usedIds = self.templateSignatures().map(function(ts) { return ts.signatureId; });
         return self.availableSignatures().filter(function(s) {
@@ -23,19 +49,15 @@ function TemplateEditorViewModel() {
         });
     });
 
-    // Selection: { kind: 'field'|'sig-image'|'sig-name'|'sig-title', data: object }
     self.selectedItem = ko.observable(null);
-
     self.selectedField = ko.computed(function() {
         var sel = self.selectedItem();
         return (sel && sel.kind === 'field') ? sel.data : null;
     });
-
     self.selectedSig = ko.computed(function() {
         var sel = self.selectedItem();
         return (sel && sel.kind && sel.kind.indexOf('sig-') === 0) ? sel.data : null;
     });
-
     self.selectedSigPart = ko.computed(function() {
         var sel = self.selectedItem();
         return (sel && sel.kind && sel.kind.indexOf('sig-') === 0) ? sel.kind : null;
@@ -44,6 +66,7 @@ function TemplateEditorViewModel() {
     var fieldIdCounter = 0;
     var isDragging = false, isResizing = false;
     var dragOffsetX = 0, dragOffsetY = 0;
+    var clipboard = null;
 
     self.getFieldTypeLabel = function(type) {
         return { static: 'Sabit Metin', dynamic: 'Dinamik', qrcode: 'QR Kod' }[type] || type;
@@ -70,17 +93,12 @@ function TemplateEditorViewModel() {
             nameFontSize: ko.observable(ts.nameFontSize || 8),
             titleFontSize: ko.observable(ts.titleFontSize || 7)
         };
-        obs.instructorName.subscribe(function() { self.renderAll(); });
-        obs.instructorTitle.subscribe(function() { self.renderAll(); });
-        obs.showName.subscribe(function() { self.renderAll(); });
-        obs.showTitle.subscribe(function() { self.renderAll(); });
-        obs.imageRotation.subscribe(function() { self.renderAll(); });
-        obs.nameFontSize.subscribe(function() { self.renderAll(); });
-        obs.titleFontSize.subscribe(function() { self.renderAll(); });
+        ['instructorName','instructorTitle','showName','showTitle','imageRotation','nameFontSize','titleFontSize']
+            .forEach(function(k) { obs[k].subscribe(function() { self.renderAll(); }); });
         return obs;
     }
 
-    // ==================== INIT ====================
+    // ─── INIT ───
 
     $(document).ready(function() {
         document.getElementById('tpl-bg-file').addEventListener('change', function() {
@@ -94,7 +112,6 @@ function TemplateEditorViewModel() {
             }
         });
 
-        // Load available signatures first, then template
         apiGet('/signatures')
             .done(function(data) { self.availableSignatures(data); })
             .always(function() {
@@ -102,9 +119,32 @@ function TemplateEditorViewModel() {
             });
 
         self.orientation.subscribe(function() { self.renderAll(); });
+        self.useSampleData.subscribe(function() { self.renderAll(); });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Skip when typing in inputs
+            if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+            var sel = self.selectedItem();
+            if (!sel || sel.kind !== 'field') return;
+
+            if (e.key === 'Delete') { self.deleteSelectedField(); e.preventDefault(); }
+            else if (e.ctrlKey && e.key.toLowerCase() === 'd') { self.duplicateSelectedField(); e.preventDefault(); }
+            else if (e.ctrlKey && e.key.toLowerCase() === 'c') { clipboard = cloneFieldData(sel.data); toastr.info('Kopyalandi'); e.preventDefault(); }
+            else if (e.ctrlKey && e.key.toLowerCase() === 'v') { if (clipboard) { pasteFromClipboard(); } e.preventDefault(); }
+            else if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].indexOf(e.key) >= 0) {
+                var step = e.shiftKey ? 2 : 0.5;
+                if (e.key === 'ArrowLeft') sel.data.x = Math.max(0, sel.data.x - step);
+                if (e.key === 'ArrowRight') sel.data.x = Math.min(100 - sel.data.width, sel.data.x + step);
+                if (e.key === 'ArrowUp') sel.data.y = Math.max(0, sel.data.y - step);
+                if (e.key === 'ArrowDown') sel.data.y = Math.min(100 - sel.data.height, sel.data.y + step);
+                self.onFieldChanged();
+                e.preventDefault();
+            }
+        });
     });
 
-    // ==================== LOAD ====================
+    // ─── LOAD ───
 
     self.loadTemplate = function() {
         apiGet('/templates/' + templateId)
@@ -119,39 +159,43 @@ function TemplateEditorViewModel() {
                     self.backgroundPreview(tpl.backgroundImageUrl);
                 }
 
-                // Parse layout fields — filter out old 'signature' type
                 var parsed = JSON.parse(tpl.layoutJson || '[]')
                     .filter(function(f) { return (f.fieldType || f.FieldType || 'static') !== 'signature'; })
                     .map(function(f, i) {
-                        return self.createFieldObj(i, {
-                            fieldType: f.fieldType || f.FieldType || 'static',
-                            dynamicKey: f.dynamicKey || f.DynamicKey || null,
-                            staticText: f.staticText || f.StaticText || '',
-                            x: f.x || f.X || 10,
-                            y: f.y || f.Y || 10,
-                            width: f.width || f.Width || 30,
-                            height: f.height || f.Height || 5,
-                            fontFamily: f.fontFamily || f.FontFamily || 'Arial',
-                            fontSize: f.fontSize || f.FontSize || 14,
-                            fontColor: f.fontColor || f.FontColor || '#000000',
-                            isBold: f.isBold || f.IsBold || false,
-                            isItalic: f.isItalic || f.IsItalic || false,
-                            textAlign: f.textAlign || f.TextAlign || 'center'
-                        });
+                        return self.createFieldObj(i, normalizeField(f, i));
                     });
                 fieldIdCounter = parsed.length;
                 self.fields(parsed);
 
-                // Load template signatures
-                var sigs = (tpl.templateSignatures || []).map(function(ts) {
-                    return makeSigObservable(ts);
-                });
+                var sigs = (tpl.templateSignatures || []).map(makeSigObservable);
                 self.templateSignatures(sigs);
 
                 self.renderAll();
             })
-            .fail(function() { toastr.error('Sablon yuklenemedi'); });
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Sablon yuklenemedi')); });
     };
+
+    function normalizeField(f, idx) {
+        return {
+            fieldType: f.fieldType || f.FieldType || 'static',
+            dynamicKey: f.dynamicKey || f.DynamicKey || null,
+            staticText: f.staticText || f.StaticText || '',
+            x: f.x || f.X || 10,
+            y: f.y || f.Y || 10,
+            width: f.width || f.Width || 30,
+            height: f.height || f.Height || 5,
+            fontFamily: f.fontFamily || f.FontFamily || 'Arial',
+            fontSize: f.fontSize || f.FontSize || 14,
+            fontColor: f.fontColor || f.FontColor || '#000000',
+            isBold: f.isBold || f.IsBold || false,
+            isItalic: f.isItalic || f.IsItalic || false,
+            isUnderline: f.isUnderline || f.IsUnderline || false,
+            letterSpacing: f.letterSpacing !== undefined ? f.letterSpacing : (f.LetterSpacing !== undefined ? f.LetterSpacing : null),
+            lineHeight: f.lineHeight !== undefined ? f.lineHeight : (f.LineHeight !== undefined ? f.LineHeight : null),
+            textAlign: f.textAlign || f.TextAlign || 'center',
+            displayOrder: f.displayOrder !== undefined ? f.displayOrder : (f.DisplayOrder !== undefined ? f.DisplayOrder : idx)
+        };
+    }
 
     self.createFieldObj = function(id, data) {
         return {
@@ -159,30 +203,62 @@ function TemplateEditorViewModel() {
             fieldType: data.fieldType,
             dynamicKey: data.dynamicKey,
             staticText: data.staticText || '',
-            x: data.x, y: data.y, width: data.width, height: data.height,
+            x: parseFloat(data.x) || 0,
+            y: parseFloat(data.y) || 0,
+            width: parseFloat(data.width) || 20,
+            height: parseFloat(data.height) || 5,
             fontFamily: data.fontFamily || 'Arial',
             fontSize: parseFloat(data.fontSize) || 14,
             fontColor: data.fontColor || '#000000',
             isBold: data.isBold || false,
             isItalic: data.isItalic || false,
-            textAlign: data.textAlign || 'center'
+            isUnderline: data.isUnderline || false,
+            letterSpacing: data.letterSpacing !== undefined && data.letterSpacing !== null ? parseFloat(data.letterSpacing) : null,
+            lineHeight: data.lineHeight !== undefined && data.lineHeight !== null ? parseFloat(data.lineHeight) : null,
+            textAlign: data.textAlign || 'center',
+            displayOrder: data.displayOrder !== undefined ? data.displayOrder : 0
         };
     };
 
-    // ==================== ADD FIELDS ====================
+    function cloneFieldData(f) {
+        return {
+            fieldType: f.fieldType, dynamicKey: f.dynamicKey, staticText: f.staticText,
+            x: f.x + 3, y: f.y + 3, width: f.width, height: f.height,
+            fontFamily: f.fontFamily, fontSize: f.fontSize, fontColor: f.fontColor,
+            isBold: f.isBold, isItalic: f.isItalic, isUnderline: f.isUnderline,
+            letterSpacing: f.letterSpacing, lineHeight: f.lineHeight,
+            textAlign: f.textAlign, displayOrder: self.fields().length
+        };
+    }
+
+    function pasteFromClipboard() {
+        if (!clipboard) return;
+        var copy = Object.assign({}, clipboard);
+        copy.x = Math.min(95, copy.x + 2);
+        copy.y = Math.min(95, copy.y + 2);
+        copy.displayOrder = self.fields().length;
+        var field = self.createFieldObj(fieldIdCounter++, copy);
+        self.fields.push(field);
+        self.selectItem({ kind: 'field', data: field });
+    }
+
+    // ─── ADD FIELDS ───
 
     self.addStaticField = function() { self.addField('static'); };
-    self.addDynamicField = function() { self.addField('dynamic'); };
+    self.addDynamicField = function() { self.addField('dynamic', 'HolderName'); };
     self.addQrCodeField = function() { self.addField('qrcode'); };
+    self.addDynamicFieldWithKey = function(key) { self.addField('dynamic', key); };
 
-    self.addField = function(type) {
+    self.addField = function(type, dynamicKey) {
         var data = {
             fieldType: type,
-            dynamicKey: type === 'dynamic' ? 'HolderName' : (type === 'qrcode' ? 'QrCode' : null),
+            dynamicKey: type === 'dynamic' ? (dynamicKey || 'HolderName') : (type === 'qrcode' ? 'QrCode' : null),
             staticText: type === 'static' ? 'Metin' : '',
-            x: 30, y: 30, width: 25, height: 5,
-            fontFamily: 'Arial', fontSize: 14, fontColor: '#000000',
-            isBold: false, isItalic: false, textAlign: 'center'
+            x: 30, y: 30, width: 30, height: 6,
+            fontFamily: 'Arial', fontSize: 16, fontColor: '#000000',
+            isBold: false, isItalic: false, isUnderline: false,
+            letterSpacing: null, lineHeight: null,
+            textAlign: 'center', displayOrder: self.fields().length
         };
         if (type === 'qrcode') {
             data.width = 10; data.height = 10; data.x = 80; data.y = 75;
@@ -192,7 +268,50 @@ function TemplateEditorViewModel() {
         self.selectItem({ kind: 'field', data: field });
     };
 
-    // ==================== ADD / REMOVE SIGNATURE ====================
+    self.duplicateSelectedField = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        var copy = cloneFieldData(sel.data);
+        var field = self.createFieldObj(fieldIdCounter++, copy);
+        self.fields.push(field);
+        self.selectItem({ kind: 'field', data: field });
+    };
+
+    // ─── Layer management ───
+
+    function reorderByDisplayOrder() {
+        var arr = self.fields().slice().sort(function(a,b) { return a.displayOrder - b.displayOrder; });
+        arr.forEach(function(f, i) { f.displayOrder = i; });
+        self.fields(arr);
+        self.renderAll();
+    }
+
+    self.bringToFront = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        sel.data.displayOrder = self.fields().length;
+        reorderByDisplayOrder();
+    };
+    self.sendToBack = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        sel.data.displayOrder = -1;
+        reorderByDisplayOrder();
+    };
+    self.bringForward = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        sel.data.displayOrder += 1.5;
+        reorderByDisplayOrder();
+    };
+    self.sendBackward = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        sel.data.displayOrder -= 1.5;
+        reorderByDisplayOrder();
+    };
+
+    // ─── SIGNATURE add/remove ───
 
     self.addSignature = function(sig) {
         var ts = makeSigObservable({
@@ -200,11 +319,9 @@ function TemplateEditorViewModel() {
             signature: sig,
             instructorName: sig.name,
             instructorTitle: sig.title,
-            showName: true,
-            showTitle: true,
+            showName: true, showTitle: true,
             imageX: 0, imageY: 80, imageWidth: 12, imageHeight: 8, imageRotation: 0,
-            nameX: 0, nameY: 90,
-            titleX: 0, titleY: 93
+            nameX: 0, nameY: 90, titleX: 0, titleY: 93
         });
         self.templateSignatures.push(ts);
         self.selectItem({ kind: 'sig-image', data: ts });
@@ -213,8 +330,7 @@ function TemplateEditorViewModel() {
     self.rotateSelectedSignature = function() {
         var sel = self.selectedItem();
         if (!sel || sel.kind.indexOf('sig-') !== 0) return;
-        var current = sel.data.imageRotation();
-        sel.data.imageRotation((current + 1) % 4);
+        sel.data.imageRotation((sel.data.imageRotation() + 1) % 4);
     };
 
     self.removeSelectedSignature = function() {
@@ -225,17 +341,10 @@ function TemplateEditorViewModel() {
         self.renderAll();
     };
 
-    // ==================== SELECTION ====================
+    // ─── SELECTION ───
 
-    self.selectItem = function(item) {
-        self.selectedItem(item);
-        self.renderAll();
-    };
-
-    self.clearSelection = function() {
-        self.selectedItem(null);
-        self.renderAll();
-    };
+    self.selectItem = function(item) { self.selectedItem(item); self.renderAll(); };
+    self.clearSelection = function() { self.selectedItem(null); self.renderAll(); };
 
     self.deleteSelectedField = function() {
         var sel = self.selectedItem();
@@ -245,19 +354,19 @@ function TemplateEditorViewModel() {
         self.renderAll();
     };
 
-    self.onFieldChanged = function() {
-        self.renderAll();
-    };
+    self.onFieldChanged = function() { self.renderAll(); };
 
-    // ==================== RENDER ====================
+    // ─── RENDER ───
 
     self.renderAll = function() {
         var canvas = document.getElementById('editor-canvas');
+        if (!canvas) return;
         canvas.querySelectorAll('.editor-el').forEach(function(el) { el.remove(); });
 
         var sel = self.selectedItem();
 
-        self.fields().forEach(function(field) {
+        // Render fields sorted by displayOrder
+        self.fields().slice().sort(function(a,b) { return a.displayOrder - b.displayOrder; }).forEach(function(field) {
             var isSelected = sel && sel.kind === 'field' && sel.data === field;
             renderLayoutField(canvas, field, isSelected);
         });
@@ -293,38 +402,54 @@ function TemplateEditorViewModel() {
         el.style.backgroundColor = 'rgba(255,255,255,0.7)';
 
         var label = document.createElement('span');
+        var textContent;
         if (field.fieldType === 'dynamic') {
-            var keyLabels = {
-                HolderName: 'Ad Soyad', TrainingName: 'Egitim Adi', TrainingDate: 'Tarih',
-                CompanyName: 'Firma', CertificateNo: 'Sertifika No', QrCode: 'QR Kod'
-            };
-            label.textContent = '[' + (keyLabels[field.dynamicKey] || field.dynamicKey) + ']';
-            label.style.color = '#3498db';
+            if (self.useSampleData()) {
+                textContent = self.sampleValues[field.dynamicKey] || '[' + field.dynamicKey + ']';
+            } else {
+                var keyLabels = {};
+                self.dynamicKeys.forEach(function(d) { keyLabels[d.key] = d.label; });
+                textContent = '[' + (keyLabels[field.dynamicKey] || field.dynamicKey) + ']';
+            }
+            label.style.color = self.useSampleData() ? (field.fontColor || '#000') : '#3498db';
         } else if (field.fieldType === 'qrcode') {
-            label.textContent = '[QR Kod]';
+            textContent = '[QR]';
             label.style.color = '#27ae60';
         } else {
-            label.textContent = field.staticText || 'Metin';
+            textContent = field.staticText || 'Metin';
+            label.style.color = field.fontColor || '#000';
         }
+        label.textContent = textContent;
         label.style.fontFamily = field.fontFamily;
-        label.style.fontSize = Math.min(field.fontSize * 0.8, 18) + 'px';
+        label.style.fontSize = Math.min(field.fontSize * 0.8, 24) + 'px';
         label.style.fontWeight = field.isBold ? 'bold' : 'normal';
         label.style.fontStyle = field.isItalic ? 'italic' : 'normal';
+        label.style.textDecoration = field.isUnderline ? 'underline' : 'none';
         label.style.textAlign = field.textAlign;
         label.style.width = '100%';
         label.style.pointerEvents = 'none';
+        if (field.letterSpacing) label.style.letterSpacing = field.letterSpacing + 'px';
+        if (field.lineHeight) label.style.lineHeight = field.lineHeight;
         el.appendChild(label);
+
+        // Overflow detection
+        if (self.useSampleData() && field.fieldType !== 'qrcode') {
+            setTimeout(function() {
+                if (label.scrollWidth > el.clientWidth + 2 || label.scrollHeight > el.clientHeight + 2) {
+                    el.style.border = '2px solid #dc3545';
+                    el.style.backgroundColor = 'rgba(220,53,69,0.1)';
+                    el.title = 'Metin bu alana sigmiyor';
+                }
+            }, 0);
+        }
 
         var handle = document.createElement('div');
         handle.style.cssText = 'position:absolute;right:0;bottom:0;width:10px;height:10px;background:#3498db;cursor:se-resize;';
         el.appendChild(handle);
 
         el.addEventListener('mousedown', function(e) {
-            if (e.target === handle) {
-                startFieldResize(e, field);
-            } else {
-                startFieldDrag(e, field);
-            }
+            if (e.target === handle) startFieldResize(e, field);
+            else startFieldDrag(e, field);
             self.selectItem({ kind: 'field', data: field });
             e.preventDefault();
         });
@@ -358,11 +483,8 @@ function TemplateEditorViewModel() {
         el.appendChild(handle);
 
         el.addEventListener('mousedown', function(e) {
-            if (e.target === handle) {
-                startSigResize(e, sig);
-            } else {
-                startSigImageDrag(e, sig);
-            }
+            if (e.target === handle) startSigResize(e, sig);
+            else startSigImageDrag(e, sig);
             self.selectItem({ kind: 'sig-image', data: sig });
             e.preventDefault();
         });
@@ -383,8 +505,8 @@ function TemplateEditorViewModel() {
 
         var lbl = document.createElement('span');
         lbl.textContent = sig.instructorName() || sig.signature.name || '';
-        var nameFsDisplay = Math.min(Math.max(parseInt(sig.nameFontSize()) || 8, 6), 24);
-        lbl.style.cssText = 'color:#27ae60;font-size:' + nameFsDisplay + 'px;pointer-events:none;white-space:nowrap;';
+        var fs = Math.min(Math.max(parseInt(sig.nameFontSize()) || 8, 6), 24);
+        lbl.style.cssText = 'color:#27ae60;font-size:' + fs + 'px;pointer-events:none;white-space:nowrap;';
         el.appendChild(lbl);
 
         el.addEventListener('mousedown', function(e) {
@@ -392,7 +514,6 @@ function TemplateEditorViewModel() {
             self.selectItem({ kind: 'sig-name', data: sig });
             e.preventDefault();
         });
-
         canvas.appendChild(el);
     }
 
@@ -409,8 +530,8 @@ function TemplateEditorViewModel() {
 
         var lbl = document.createElement('span');
         lbl.textContent = sig.instructorTitle() || sig.signature.title || '';
-        var titleFsDisplay = Math.min(Math.max(parseInt(sig.titleFontSize()) || 7, 6), 24);
-        lbl.style.cssText = 'color:#8e44ad;font-size:' + titleFsDisplay + 'px;pointer-events:none;white-space:nowrap;';
+        var fs = Math.min(Math.max(parseInt(sig.titleFontSize()) || 7, 6), 24);
+        lbl.style.cssText = 'color:#8e44ad;font-size:' + fs + 'px;pointer-events:none;white-space:nowrap;';
         el.appendChild(lbl);
 
         el.addEventListener('mousedown', function(e) {
@@ -418,11 +539,53 @@ function TemplateEditorViewModel() {
             self.selectItem({ kind: 'sig-title', data: sig });
             e.preventDefault();
         });
-
         canvas.appendChild(el);
     }
 
-    // ==================== DRAG & DROP ====================
+    // ─── SNAP HELPERS ───
+
+    var SNAP_TOLERANCE = 1.2; // percent
+
+    function gatherSnapPoints(excludeField) {
+        var vs = [0, 25, 50, 75, 100];  // page verticals
+        var hs = [0, 25, 50, 75, 100];  // page horizontals
+
+        self.fields().forEach(function(f) {
+            if (f === excludeField) return;
+            vs.push(f.x, f.x + f.width / 2, f.x + f.width);
+            hs.push(f.y, f.y + f.height / 2, f.y + f.height);
+        });
+        self.templateSignatures().forEach(function(s) {
+            vs.push(s.imageX(), s.imageX() + s.imageWidth() / 2, s.imageX() + s.imageWidth());
+            hs.push(s.imageY(), s.imageY() + s.imageHeight() / 2, s.imageY() + s.imageHeight());
+        });
+        return { vs: vs, hs: hs };
+    }
+
+    function snapValue(val, candidates) {
+        var best = null;
+        candidates.forEach(function(c) {
+            var d = Math.abs(val - c);
+            if (d < SNAP_TOLERANCE && (best === null || d < Math.abs(val - best))) best = c;
+        });
+        return best;
+    }
+
+    function showSnapLine(which, percent) {
+        var el = document.getElementById(which === 'v' ? 'snap-v' : 'snap-h');
+        if (!el) return;
+        if (percent === null) { el.style.display = 'none'; return; }
+        el.style.display = 'block';
+        if (which === 'v') el.style.left = percent + '%';
+        else el.style.top = percent + '%';
+    }
+
+    function hideSnapLines() {
+        showSnapLine('v', null);
+        showSnapLine('h', null);
+    }
+
+    // ─── DRAG & DROP with snap ───
 
     function startFieldDrag(e, field) {
         isDragging = true;
@@ -434,12 +597,41 @@ function TemplateEditorViewModel() {
         var onMove = function(ev) {
             if (!isDragging) return;
             var r = canvas.getBoundingClientRect();
-            field.x = Math.max(0, Math.min(100 - field.width, (ev.clientX - r.left) / r.width * 100 - dragOffsetX));
-            field.y = Math.max(0, Math.min(100 - field.height, (ev.clientY - r.top) / r.height * 100 - dragOffsetY));
+            var newX = (ev.clientX - r.left) / r.width * 100 - dragOffsetX;
+            var newY = (ev.clientY - r.top) / r.height * 100 - dragOffsetY;
+
+            var pts = gatherSnapPoints(field);
+            var snappedX = null, snappedY = null;
+
+            // Try snapping x edges
+            var testXs = [newX, newX + field.width / 2, newX + field.width];
+            for (var i = 0; i < testXs.length; i++) {
+                var s = snapValue(testXs[i], pts.vs);
+                if (s !== null) {
+                    newX = s - (i === 0 ? 0 : (i === 1 ? field.width / 2 : field.width));
+                    snappedX = s;
+                    break;
+                }
+            }
+            var testYs = [newY, newY + field.height / 2, newY + field.height];
+            for (var j = 0; j < testYs.length; j++) {
+                var ss = snapValue(testYs[j], pts.hs);
+                if (ss !== null) {
+                    newY = ss - (j === 0 ? 0 : (j === 1 ? field.height / 2 : field.height));
+                    snappedY = ss;
+                    break;
+                }
+            }
+
+            field.x = Math.max(0, Math.min(100 - field.width, newX));
+            field.y = Math.max(0, Math.min(100 - field.height, newY));
+            showSnapLine('v', snappedX);
+            showSnapLine('h', snappedY);
             self.renderAll();
         };
         var onUp = function() {
             isDragging = false;
+            hideSnapLines();
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
         };
@@ -533,23 +725,23 @@ function TemplateEditorViewModel() {
         document.addEventListener('mouseup', onUp);
     }
 
-    // ==================== PREVIEW ====================
+    // ─── SERIALIZE ───
 
-    self.previewTemplate = function() {
-        if (!templateId) { toastr.warning('Once sablonu kaydedin'); return; }
-
-        self.isPreviewing(true);
-
-        var layout = self.fields().map(function(f) {
+    function serializeLayout() {
+        return self.fields().slice().sort(function(a,b){ return a.displayOrder - b.displayOrder; }).map(function(f, idx) {
             return {
                 FieldType: f.fieldType, DynamicKey: f.dynamicKey, StaticText: f.staticText,
                 X: f.x, Y: f.y, Width: f.width, Height: f.height,
                 FontFamily: f.fontFamily, FontSize: parseFloat(f.fontSize) || 14, FontColor: f.fontColor,
-                IsBold: f.isBold, IsItalic: f.isItalic, TextAlign: f.textAlign
+                IsBold: f.isBold, IsItalic: f.isItalic, IsUnderline: f.isUnderline,
+                LetterSpacing: f.letterSpacing, LineHeight: f.lineHeight,
+                TextAlign: f.textAlign, DisplayOrder: idx
             };
         });
+    }
 
-        var sigs = self.templateSignatures().map(function(s) {
+    function serializeSignatures() {
+        return self.templateSignatures().map(function(s) {
             return {
                 signatureId: s.signatureId,
                 instructorName: s.instructorName(),
@@ -569,11 +761,18 @@ function TemplateEditorViewModel() {
                 titleFontSize: parseInt(s.titleFontSize()) || 7
             };
         });
+    }
+
+    // ─── PREVIEW ───
+
+    self.previewTemplate = function() {
+        if (!templateId) { toastr.warning('Once sablonu kaydedin'); return; }
+        self.isPreviewing(true);
 
         var body = {
-            layoutJson: JSON.stringify(layout),
+            layoutJson: JSON.stringify(serializeLayout()),
             orientation: parseInt(self.orientation()),
-            signatures: sigs
+            signatures: serializeSignatures()
         };
 
         $.ajax({
@@ -587,40 +786,25 @@ function TemplateEditorViewModel() {
             var url = URL.createObjectURL(blob);
             document.getElementById('previewFrame').src = url;
             new bootstrap.Modal(document.getElementById('previewModal')).show();
-            // Clean up blob URL when modal closes
             document.getElementById('previewModal').addEventListener('hidden.bs.modal', function() {
                 URL.revokeObjectURL(url);
             }, { once: true });
         })
-        .fail(function(xhr) {
-            toastr.error('On izleme olusturulamadi: ' + (xhr.responseText || 'Hata'));
-        })
-        .always(function() {
-            self.isPreviewing(false);
-        });
+        .fail(function(xhr) { toastr.error(extractError(xhr, 'Onizleme olusturulamadi')); })
+        .always(function() { self.isPreviewing(false); });
     };
 
-    // ==================== SAVE ====================
+    // ─── SAVE ───
 
     self.saveTemplate = function() {
         if (!self.templateName()) { toastr.warning('Sablon adi gerekli'); return; }
-
         self.isSaving(true);
-
-        var layout = self.fields().map(function(f) {
-            return {
-                FieldType: f.fieldType, DynamicKey: f.dynamicKey, StaticText: f.staticText,
-                X: f.x, Y: f.y, Width: f.width, Height: f.height,
-                FontFamily: f.fontFamily, FontSize: parseFloat(f.fontSize) || 14, FontColor: f.fontColor,
-                IsBold: f.isBold, IsItalic: f.isItalic, TextAlign: f.textAlign
-            };
-        });
 
         var body = {
             name: self.templateName(),
             description: self.templateDesc(),
             orientation: parseInt(self.orientation()),
-            layoutJson: JSON.stringify(layout),
+            layoutJson: JSON.stringify(serializeLayout()),
             backgroundImageUrl: self.backgroundImageUrl
         };
 
@@ -637,41 +821,17 @@ function TemplateEditorViewModel() {
                 var savedId = templateId || (result && result.id);
 
                 var bgFile = document.getElementById('tpl-bg-file').files[0];
-                var bgPromise;
-                if (bgFile && savedId) {
-                    var fd = new FormData();
-                    fd.append('file', bgFile);
-                    bgPromise = apiPost('/templates/' + savedId + '/upload-background', fd, true);
-                } else {
-                    bgPromise = $.Deferred().resolve();
-                }
+                var bgPromise = bgFile && savedId
+                    ? (function() {
+                        var fd = new FormData();
+                        fd.append('file', bgFile);
+                        return apiPost('/templates/' + savedId + '/upload-background', fd, true);
+                    })()
+                    : $.Deferred().resolve();
 
-                var sigPromise;
-                if (savedId) {
-                    var signatures = self.templateSignatures().map(function(s) {
-                        return {
-                            signatureId: s.signatureId,
-                            instructorName: s.instructorName(),
-                            instructorTitle: s.instructorTitle(),
-                            showName: s.showName(),
-                            showTitle: s.showTitle(),
-                            imageX: parseFloat(s.imageX()) || 0,
-                            imageY: parseFloat(s.imageY()) || 0,
-                            imageWidth: parseFloat(s.imageWidth()) || 12,
-                            imageHeight: parseFloat(s.imageHeight()) || 8,
-                            imageRotation: parseInt(s.imageRotation()) || 0,
-                            nameX: parseFloat(s.nameX()) || 0,
-                            nameY: parseFloat(s.nameY()) || 0,
-                            titleX: parseFloat(s.titleX()) || 0,
-                            titleY: parseFloat(s.titleY()) || 0,
-                            nameFontSize: parseInt(s.nameFontSize()) || 8,
-                            titleFontSize: parseInt(s.titleFontSize()) || 7
-                        };
-                    });
-                    sigPromise = apiPut('/templates/' + savedId + '/signatures', { signatures: signatures });
-                } else {
-                    sigPromise = $.Deferred().resolve();
-                }
+                var sigPromise = savedId
+                    ? apiPut('/templates/' + savedId + '/signatures', { signatures: serializeSignatures() })
+                    : $.Deferred().resolve();
 
                 $.when(bgPromise, sigPromise)
                     .done(function() {
@@ -686,7 +846,7 @@ function TemplateEditorViewModel() {
                 self.isSaving(false);
             })
             .fail(function(xhr) {
-                toastr.error('Hata: ' + (xhr.responseText || 'Kaydedilemedi'));
+                toastr.error(extractError(xhr, 'Kaydedilemedi'));
                 self.isSaving(false);
             });
     };

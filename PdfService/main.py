@@ -54,6 +54,9 @@ class FieldLayout(BaseModel):
     font_color: str = "#000000"
     is_bold: bool = False
     is_italic: bool = False
+    is_underline: bool = False
+    letter_spacing: float | None = None
+    line_height: float | None = None
     alignment: str = "center"
 
 

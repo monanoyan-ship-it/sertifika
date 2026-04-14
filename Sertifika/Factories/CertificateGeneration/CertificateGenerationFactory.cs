@@ -139,10 +139,12 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
             dynamicValues = new Dictionary<string, string>
             {
                 ["HolderName"] = "Ornek Ad Soyad",
-                ["TrainingName"] = training.DisplayName ?? training.Name,
+                ["TrainingName"] = training.Name,
+                ["ProgramName"] = training.DisplayName ?? training.Name,
                 ["TrainingDate"] = training.FormatDateRange(),
                 ["CompanyName"] = training.CompanyName ?? "",
                 ["CertificateNo"] = "CERT-ONIZLEME-001",
+                ["InstructorName"] = training.InstructorName ?? "Ornek Egitmen",
                 ["QrCode"] = "https://sertifika.example.com/verify/CERT-ONIZLEME-001"
             };
         }
@@ -225,22 +227,27 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
     private List<PdfFieldLayout> ParseLayout(string layoutJson)
     {
         var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson, JsonOptions) ?? new();
-        return fields.Select(f => new PdfFieldLayout
-        {
-            Type = f.FieldType == "dynamic" ? "dynamic" : (f.DynamicKey == "QrCode" ? "qrcode" : "static"),
-            Key = f.DynamicKey,
-            Text = f.StaticText,
-            X = f.X,
-            Y = f.Y,
-            Width = f.Width,
-            Height = f.Height,
-            FontFamily = f.FontFamily,
-            FontSize = f.FontSize,
-            FontColor = f.FontColor,
-            IsBold = f.IsBold,
-            IsItalic = f.IsItalic,
-            Alignment = f.TextAlign
-        }).ToList();
+        return fields
+            .OrderBy(f => f.DisplayOrder)
+            .Select(f => new PdfFieldLayout
+            {
+                Type = f.FieldType == "dynamic" ? "dynamic" : (f.DynamicKey == "QrCode" ? "qrcode" : (f.FieldType == "qrcode" ? "qrcode" : "static")),
+                Key = f.DynamicKey,
+                Text = f.StaticText,
+                X = f.X,
+                Y = f.Y,
+                Width = f.Width,
+                Height = f.Height,
+                FontFamily = f.FontFamily,
+                FontSize = f.FontSize,
+                FontColor = f.FontColor,
+                IsBold = f.IsBold,
+                IsItalic = f.IsItalic,
+                IsUnderline = f.IsUnderline,
+                LetterSpacing = f.LetterSpacing,
+                LineHeight = f.LineHeight,
+                Alignment = f.TextAlign
+            }).ToList();
     }
 
     private async Task<List<PdfSignatureInfo>> BuildSignatureListAsync(Training training)
@@ -305,10 +312,12 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         return new Dictionary<string, string>
         {
             ["HolderName"] = $"{participant.FirstName} {participant.LastName}",
-            ["TrainingName"] = training.DisplayName ?? training.Name,
+            ["TrainingName"] = training.Name,
+            ["ProgramName"] = training.DisplayName ?? training.Name,
             ["TrainingDate"] = training.FormatDateRange(),
             ["CompanyName"] = participant.CompanyName ?? training.CompanyName ?? "",
             ["CertificateNo"] = certNumber,
+            ["InstructorName"] = training.InstructorName ?? "",
             ["QrCode"] = $"/api/certificates/verify/{certNumber}"
         };
     }
