@@ -19,4 +19,7 @@ public class Participant : BaseEntity
 
     public int TrainingId { get; set; }
     public Training Training { get; set; } = null!;
+
+    public int? ContactId { get; set; }
+    public Contact? Contact { get; set; }
 }

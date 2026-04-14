@@ -8,6 +8,10 @@ public class Training : BaseEntity
     public DateTime TrainingDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? CompanyName { get; set; }
+    public int? CompanyId { get; set; }
+    public Company? Company { get; set; }
+    public string? InstructorName { get; set; }
+    public string? InstructorTitle { get; set; }
     public TrainingStatus Status { get; set; } = TrainingStatus.Draft;
 
     public int TemplateId { get; set; }

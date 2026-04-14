@@ -34,6 +34,7 @@ public static class ServiceRegistration
         services.AddScoped<ITrainingEntityService, TrainingEntityService>();
         services.AddScoped<IParticipantEntityService, ParticipantEntityService>();
         services.AddScoped<ICompanyEntityService, CompanyEntityService>();
+        services.AddScoped<IContactEntityService, ContactEntityService>();
         services.AddScoped<IOneDriveAccountEntityService, OneDriveAccountEntityService>();
         services.AddScoped<ISmtpAccountEntityService, SmtpAccountEntityService>();
         services.AddScoped<IEmailTemplateEntityService, EmailTemplateEntityService>();
@@ -48,6 +49,7 @@ public static class ServiceRegistration
         services.AddScoped<ITrainingCrudFactory, TrainingCrudFactory>();
         services.AddScoped<IParticipantCrudFactory, ParticipantCrudFactory>();
         services.AddScoped<ICompanyCrudFactory, CompanyCrudFactory>();
+        services.AddScoped<ICompanyImportFactory, CompanyImportFactory>();
         services.AddScoped<ICertificateGenerationFactory, CertificateGenerationFactory>();
         services.AddScoped<IDistributionFactory, DistributionFactory>();
         services.AddScoped<IOneDriveAccountCrudFactory, OneDriveAccountCrudFactory>();

@@ -1,0 +1,212 @@
+@{
+    ViewData["Title"] = "Firma Detay";
+    var companyId = ViewData["CompanyId"];
+}
+
+<div class="container mt-4" id="companyDetailApp">
+    <div data-bind="visible: isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div data-bind="visible: !isLoading() && detail()">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 data-bind="text: detail() ? detail().company.name : ''"></h2>
+                <div class="text-muted small">
+                    <span data-bind="visible: detail() && detail().company.contactEmail">
+                        <i class="bi bi-envelope me-1"></i><span data-bind="text: detail() ? detail().company.contactEmail : ''"></span>
+                    </span>
+                    <span class="ms-3" data-bind="visible: detail() && detail().company.contactPhone">
+                        <i class="bi bi-telephone me-1"></i><span data-bind="text: detail() ? detail().company.contactPhone : ''"></span>
+                    </span>
+                </div>
+            </div>
+            <a asp-action="Companies" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Geri
+            </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Kisiler</div>
+                                <h4 class="mb-0" data-bind="text: detail() ? detail().contacts.length : 0"></h4>
+                            </div>
+                            <i class="bi bi-people display-6 text-primary opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Egitimler</div>
+                                <h4 class="mb-0" data-bind="text: detail() ? detail().trainings.length : 0"></h4>
+                            </div>
+                            <i class="bi bi-mortarboard display-6 text-success opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Sertifikalar</div>
+                                <h4 class="mb-0" data-bind="text: detail() ? detail().certificates.length : 0"></h4>
+                            </div>
+                            <i class="bi bi-award display-6 text-warning opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Toplam Katilim</div>
+                                <h4 class="mb-0" data-bind="text: totalParticipations()"></h4>
+                            </div>
+                            <i class="bi bi-clipboard-check display-6 text-info opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link" type="button" data-bind="css: { active: activeTab() === 'info' }, click: function() { activeTab('info'); }"><i class="bi bi-info-circle me-1"></i>Bilgiler</button></li>
+            <li class="nav-item"><button class="nav-link" type="button" data-bind="css: { active: activeTab() === 'contacts' }, click: function() { activeTab('contacts'); }"><i class="bi bi-people me-1"></i>Kisiler</button></li>
+            <li class="nav-item"><button class="nav-link" type="button" data-bind="css: { active: activeTab() === 'trainings' }, click: function() { activeTab('trainings'); }"><i class="bi bi-mortarboard me-1"></i>Egitimler</button></li>
+            <li class="nav-item"><button class="nav-link" type="button" data-bind="css: { active: activeTab() === 'certificates' }, click: function() { activeTab('certificates'); }"><i class="bi bi-award me-1"></i>Sertifikalar</button></li>
+        </ul>
+
+        <!-- Info tab -->
+        <div data-bind="visible: activeTab() === 'info'">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Firma Adi</dt><dd class="col-sm-9" data-bind="text: detail() ? detail().company.name : ''"></dd>
+                        <dt class="col-sm-3">E-posta</dt><dd class="col-sm-9" data-bind="text: (detail() && detail().company.contactEmail) || '-'"></dd>
+                        <dt class="col-sm-3">Telefon</dt><dd class="col-sm-9" data-bind="text: (detail() && detail().company.contactPhone) || '-'"></dd>
+                        <dt class="col-sm-3">Adres</dt><dd class="col-sm-9" data-bind="text: (detail() && detail().company.address) || '-'"></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts tab -->
+        <div data-bind="visible: activeTab() === 'contacts'">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Firmaya Bagli Kisiler</h5>
+                <button class="btn btn-sm btn-primary" data-bind="click: openContactModal">
+                    <i class="bi bi-plus-circle me-1"></i>Kisi Ekle
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light"><tr><th>Ad Soyad</th><th>E-posta</th><th>Telefon</th><th style="width:120px;" class="text-end">Islem</th></tr></thead>
+                    <tbody data-bind="foreach: detail() ? detail().contacts : []">
+                        <tr>
+                            <td data-bind="text: firstName + ' ' + lastName"></td>
+                            <td class="text-muted" data-bind="text: email || '-'"></td>
+                            <td class="text-muted" data-bind="text: phone || '-'"></td>
+                            <td class="text-end text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary me-1" data-bind="click: $parent.editContact"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteContact"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: detail() && detail().contacts.length === 0">Kisi yok.</div>
+        </div>
+
+        <!-- Trainings tab -->
+        <div data-bind="visible: activeTab() === 'trainings'">
+            <h5 class="mb-2">Firmaya Verilen Egitimler</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light"><tr><th>Egitim Adi</th><th>Tarih</th><th>Egitmen</th><th>Katilimci</th><th>Durum</th><th></th></tr></thead>
+                    <tbody data-bind="foreach: detail() ? detail().trainings : []">
+                        <tr>
+                            <td data-bind="text: name"></td>
+                            <td class="text-muted" data-bind="text: formatDateRange(trainingDate, endDate)"></td>
+                            <td class="text-muted" data-bind="text: instructorName || '-'"></td>
+                            <td><span class="badge bg-secondary" data-bind="text: participantCount"></span></td>
+                            <td><span class="badge" data-bind="text: ['Taslak','Hazir','Uretildi','Dagitildi'][status] || '', css: ['bg-secondary','bg-info','bg-success','bg-primary'][status] || 'bg-secondary'"></span></td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-info" data-bind="attr: { href: '/Panel/TrainingDetail/' + id }"><i class="bi bi-eye"></i></a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: detail() && detail().trainings.length === 0">Egitim yok.</div>
+        </div>
+
+        <!-- Certificates tab -->
+        <div data-bind="visible: activeTab() === 'certificates'">
+            <h5 class="mb-2">Uretilen Sertifikalar</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light"><tr><th>Ad Soyad</th><th>E-posta</th><th>Egitim</th><th>Tarih</th><th>Sertifika No</th><th></th></tr></thead>
+                    <tbody data-bind="foreach: detail() ? detail().certificates : []">
+                        <tr>
+                            <td data-bind="text: fullName"></td>
+                            <td class="text-muted" data-bind="text: email || '-'"></td>
+                            <td class="text-muted" data-bind="text: trainingName"></td>
+                            <td class="text-muted" data-bind="text: formatDate(trainingDate)"></td>
+                            <td><code data-bind="text: certificateNumber"></code></td>
+                            <td class="text-end">
+                                <!-- ko if: hasPdf -->
+                                <a class="btn btn-sm btn-outline-success" data-bind="attr: { href: '/api/certificates/download/' + certificateNumber }" target="_blank"><i class="bi bi-file-pdf"></i></a>
+                                <!-- /ko -->
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: detail() && detail().certificates.length === 0">Sertifika yok.</div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div class="modal fade" id="contactModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-bind="text: isEditingContact() ? 'Kisi Duzenle' : 'Kisi Ekle'"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: saveContact">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3"><label class="form-label">Ad</label><input type="text" class="form-control" data-bind="textInput: contactFirstName" required></div>
+                            <div class="col-md-6 mb-3"><label class="form-label">Soyad</label><input type="text" class="form-control" data-bind="textInput: contactLastName" required></div>
+                        </div>
+                        <div class="mb-3"><label class="form-label">E-posta</label><input type="email" class="form-control" data-bind="textInput: contactEmail"></div>
+                        <div class="mb-3"><label class="form-label">Telefon</label><input type="tel" class="form-control" data-bind="textInput: contactPhone"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>var companyId = @companyId;</script>
+    <script src="~/js/CompanyDetail.js"></script>
+}

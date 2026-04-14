@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<TrainingSignature> TrainingSignatures => Set<TrainingSignature>();
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Company> Companies => Set<Company>();
+    public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<OneDriveAccount> OneDriveAccounts => Set<OneDriveAccount>();
     public DbSet<SmtpAccount> SmtpAccounts => Set<SmtpAccount>();
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
@@ -85,6 +86,29 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Training)
                 .WithMany(t => t.Participants)
                 .HasForeignKey(e => e.TrainingId);
+
+            entity.HasOne(e => e.Contact)
+                .WithMany()
+                .HasForeignKey(e => e.ContactId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Contact>(entity =>
+        {
+            entity.HasIndex(e => new { e.CompanyId, e.Email });
+
+            entity.HasOne(e => e.Company)
+                .WithMany(c => c.Contacts)
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Training>(entity =>
+        {
+            entity.HasOne(e => e.Company)
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Seed Data - CreatedAt sabit olmali (DateTime.UtcNow kullanilmamali)

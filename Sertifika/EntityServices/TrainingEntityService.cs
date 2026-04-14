@@ -31,6 +31,27 @@ public class TrainingEntityService : ITrainingEntityService
             .Include(t => t.Participants)
             .FirstOrDefaultAsync(t => t.Id == id);
 
+    public async Task<IEnumerable<Training>> GetByCompanyIdAsync(int companyId)
+        => await _context.Trainings
+            .Include(t => t.Template)
+            .Include(t => t.Participants)
+            .Where(t => t.IsActive && t.CompanyId == companyId)
+            .OrderByDescending(t => t.TrainingDate)
+            .ToListAsync();
+
+    public async Task<Training?> FindByCompanyNameAndDateAsync(int companyId, string name, DateTime date)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var normalized = name.Trim().ToLowerInvariant();
+        var day = date.Date;
+        return await _context.Trainings
+            .FirstOrDefaultAsync(t =>
+                t.IsActive &&
+                t.CompanyId == companyId &&
+                t.Name.ToLower() == normalized &&
+                t.TrainingDate.Date == day);
+    }
+
     public void Add(Training training) => _context.Trainings.Add(training);
 
     public void Update(Training training) => _context.Entry(training).State = EntityState.Modified;

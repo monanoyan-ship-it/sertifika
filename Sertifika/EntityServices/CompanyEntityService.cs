@@ -19,6 +19,14 @@ public class CompanyEntityService : ICompanyEntityService
     public async Task<Company?> GetByIdAsync(int id)
         => await _context.Companies.FindAsync(id);
 
+    public async Task<Company?> FindByNameAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var normalized = name.Trim().ToLowerInvariant();
+        return await _context.Companies
+            .FirstOrDefaultAsync(c => c.IsActive && c.Name.ToLower() == normalized);
+    }
+
     public void Add(Company company) => _context.Companies.Add(company);
 
     public void Update(Company company) => _context.Entry(company).State = EntityState.Modified;

@@ -63,6 +63,13 @@ public class PanelController : Controller
         return View();
     }
 
+    public IActionResult CompanyDetail(int id)
+    {
+        SetViewData("companies", "Firma Detay");
+        ViewData["CompanyId"] = id;
+        return View();
+    }
+
     public IActionResult EmailTemplates()
     {
         SetViewData("emailtemplates", "E-posta Sablonlari");
