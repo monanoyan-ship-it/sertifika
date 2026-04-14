@@ -20,21 +20,21 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var (success, result) = await _auth.LoginAsync(request.Email, request.Password);
-        if (!success) return Unauthorized(result);
+        var result = await _auth.LoginAsync(request.Email, request.Password);
+        if (!result.Success) return Unauthorized(new { message = result.Message });
 
-        SetAuthCookie(result);
-        return Ok(StripToken(result));
+        SetAuthCookie(result.Token!);
+        return Ok(new { user = result.User });
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var (success, result) = await _auth.RegisterAsync(request.FirstName, request.LastName, request.Email, request.Password);
-        if (!success) return BadRequest(result);
+        var result = await _auth.RegisterAsync(request.FirstName, request.LastName, request.Email, request.Password);
+        if (!result.Success) return BadRequest(new { message = result.Message });
 
-        SetAuthCookie(result);
-        return Ok(StripToken(result));
+        SetAuthCookie(result.Token!);
+        return Ok(new { user = result.User });
     }
 
     [HttpPost("logout")]
@@ -62,11 +62,8 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
-    private void SetAuthCookie(object result)
+    private void SetAuthCookie(string token)
     {
-        var token = result.GetType().GetProperty("token")?.GetValue(result) as string;
-        if (string.IsNullOrEmpty(token)) return;
-
         Response.Cookies.Append(AuthCookieName, token, new CookieOptions
         {
             HttpOnly = true,
@@ -75,12 +72,6 @@ public class AuthController : ControllerBase
             Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(7)
         });
-    }
-
-    private static object StripToken(object result)
-    {
-        var userProp = result.GetType().GetProperty("user")?.GetValue(result);
-        return new { user = userProp };
     }
 }
 

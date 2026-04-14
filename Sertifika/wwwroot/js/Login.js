@@ -10,7 +10,14 @@ function LoginViewModel() {
         self.errorMessage('');
         self.isLoading(true);
 
-        apiPost('/auth/login', { email: self.email(), password: self.password() })
+        $.ajax({
+            url: API_BASE + '/auth/login',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ email: self.email(), password: self.password() }),
+            xhrFields: { withCredentials: true },
+            skipAuthRedirect: true
+        })
             .done(function() {
                 window.location.href = '/Panel/Dashboard';
             })
@@ -24,9 +31,15 @@ function LoginViewModel() {
             });
     };
 
-    // If already authenticated, skip login
-    apiGet('/auth/me')
-        .done(function() { window.location.href = '/Panel/Dashboard'; });
+    // Silently check if already authenticated; skip global 401 handler.
+    $.ajax({
+        url: API_BASE + '/auth/me',
+        method: 'GET',
+        xhrFields: { withCredentials: true },
+        skipAuthRedirect: true
+    }).done(function() {
+        window.location.href = '/Panel/Dashboard';
+    });
 }
 
 ko.applyBindings(new LoginViewModel(), document.getElementById('loginApp'));

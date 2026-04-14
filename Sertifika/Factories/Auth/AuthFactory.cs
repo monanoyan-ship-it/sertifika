@@ -18,36 +18,25 @@ public class AuthFactory : IAuthFactory
         _jwtService = jwtService;
     }
 
-    public async Task<(bool Success, object Result)> LoginAsync(string email, string password)
+    public async Task<AuthResult> LoginAsync(string email, string password)
     {
         var user = await _userService.GetByEmailAsync(email);
-        if (user == null)
-            return (false, new { message = "E-posta veya sifre hatali." });
+        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            return new AuthResult { Success = false, Message = "E-posta veya sifre hatali." };
 
-        if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            return (false, new { message = "E-posta veya sifre hatali." });
-
-        var token = _jwtService.GenerateToken(user);
-
-        return (true, new
+        return new AuthResult
         {
-            token,
-            user = new
-            {
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email,
-                Role = user.Role.ToString()
-            }
-        });
+            Success = true,
+            Token = _jwtService.GenerateToken(user),
+            User = BuildUserDto(user)
+        };
     }
 
-    public async Task<(bool Success, object Result)> RegisterAsync(string firstName, string lastName, string email, string password)
+    public async Task<AuthResult> RegisterAsync(string firstName, string lastName, string email, string password)
     {
         var existing = await _userService.GetByEmailAsync(email);
         if (existing != null)
-            return (false, new { message = "Bu e-posta adresi zaten kayitli." });
+            return new AuthResult { Success = false, Message = "Bu e-posta adresi zaten kayitli." };
 
         var user = new User
         {
@@ -61,34 +50,26 @@ public class AuthFactory : IAuthFactory
         _userService.Add(user);
         await _unitOfWork.SaveChangesAsync();
 
-        var token = _jwtService.GenerateToken(user);
-
-        return (true, new
+        return new AuthResult
         {
-            token,
-            user = new
-            {
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email,
-                Role = user.Role.ToString()
-            }
-        });
+            Success = true,
+            Token = _jwtService.GenerateToken(user),
+            User = BuildUserDto(user)
+        };
     }
 
     public async Task<object?> GetCurrentUserAsync(int userId)
     {
         var user = await _userService.GetByIdAsync(userId);
-        if (user == null) return null;
-
-        return new
-        {
-            user.Id,
-            user.FirstName,
-            user.LastName,
-            user.Email,
-            Role = user.Role.ToString()
-        };
+        return user == null ? null : BuildUserDto(user);
     }
+
+    private static object BuildUserDto(User user) => new
+    {
+        user.Id,
+        user.FirstName,
+        user.LastName,
+        user.Email,
+        Role = user.Role.ToString()
+    };
 }

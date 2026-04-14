@@ -90,31 +90,29 @@ public class AppDbContext : DbContext
         // Seed Data - CreatedAt sabit olmali (DateTime.UtcNow kullanilmamali)
         var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        modelBuilder.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Yazilim", Description = "Yazilim gelistirme sertifikalari", CreatedAt = seedDate },
-            new Category { Id = 2, Name = "Ag ve Guvenlik", Description = "Ag ve siber guvenlik sertifikalari", CreatedAt = seedDate },
-            new Category { Id = 3, Name = "Veritabani", Description = "Veritabani yonetimi sertifikalari", CreatedAt = seedDate },
-            new Category { Id = 4, Name = "Bulut Teknolojileri", Description = "Bulut bilisim sertifikalari", CreatedAt = seedDate },
-            new Category { Id = 5, Name = "Proje Yonetimi", Description = "Proje yonetimi sertifikalari", CreatedAt = seedDate }
-        );
-
-        modelBuilder.Entity<Holder>().HasData(
-            new Holder { Id = 1, FirstName = "Ahmet", LastName = "Yilmaz", Email = "ahmet@example.com", Phone = "5551234567", CreatedAt = seedDate },
-            new Holder { Id = 2, FirstName = "Ayse", LastName = "Demir", Email = "ayse@example.com", Phone = "5559876543", CreatedAt = seedDate },
-            new Holder { Id = 3, FirstName = "Mehmet", LastName = "Kaya", Email = "mehmet@example.com", Phone = "5554567890", CreatedAt = seedDate }
-        );
-
-        // Admin kullanici - sifre: "admin123" (BCrypt hash)
+        // Test kullanicilari (sifreler: admin123 / creator123 / viewer123)
         modelBuilder.Entity<User>().HasData(
-            new User { Id = 1, FirstName = "Admin", LastName = "User", Email = "admin@sertifika.com", PasswordHash = "$2b$11$WN/yviAPXEYvPVmfayU28e4cv1s58IAy7XfMQDpfyUDvLjDe6jQeG", Role = UserRole.Admin, CreatedAt = seedDate }
-        );
-
-        modelBuilder.Entity<Certificate>().HasData(
-            new Certificate { Id = 1, Title = "Microsoft Azure Fundamentals", Description = "AZ-900 sertifikasi", CertificateNumber = "CERT-2025-001", IssueDate = new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc), ExpiryDate = new DateTime(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc), HolderId = 1, CategoryId = 4, CreatedAt = seedDate },
-            new Certificate { Id = 2, Title = "AWS Solutions Architect", Description = "AWS cozum mimari sertifikasi", CertificateNumber = "CERT-2025-002", IssueDate = new DateTime(2025, 3, 10, 0, 0, 0, DateTimeKind.Utc), ExpiryDate = new DateTime(2028, 3, 10, 0, 0, 0, DateTimeKind.Utc), HolderId = 1, CategoryId = 4, CreatedAt = seedDate },
-            new Certificate { Id = 3, Title = "CompTIA Security+", Description = "Siber guvenlik temel sertifikasi", CertificateNumber = "CERT-2025-003", IssueDate = new DateTime(2025, 5, 20, 0, 0, 0, DateTimeKind.Utc), ExpiryDate = new DateTime(2028, 5, 20, 0, 0, 0, DateTimeKind.Utc), HolderId = 2, CategoryId = 2, CreatedAt = seedDate },
-            new Certificate { Id = 4, Title = "Oracle Database Administrator", Description = "Oracle DBA sertifikasi", CertificateNumber = "CERT-2025-004", IssueDate = new DateTime(2025, 2, 1, 0, 0, 0, DateTimeKind.Utc), HolderId = 3, CategoryId = 3, CreatedAt = seedDate },
-            new Certificate { Id = 5, Title = "PMP", Description = "Project Management Professional", CertificateNumber = "CERT-2025-005", IssueDate = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), ExpiryDate = new DateTime(2028, 6, 1, 0, 0, 0, DateTimeKind.Utc), HolderId = 2, CategoryId = 5, CreatedAt = seedDate }
+            new User
+            {
+                Id = 1, FirstName = "Admin", LastName = "User",
+                Email = "admin@sertifika.com",
+                PasswordHash = "$2a$11$55oOjUVSt4TpCtUe5yj0fuYMdIfKHoImj8nFthky1Qa/ocqdqIDe6",
+                Role = UserRole.Admin, CreatedAt = seedDate
+            },
+            new User
+            {
+                Id = 2, FirstName = "Creator", LastName = "User",
+                Email = "creator@sertifika.com",
+                PasswordHash = "$2a$11$BkQ2uMbLcaih7xBKAgTN5ugeBJZ0sycLUzMPm4w2UuDaUTL89WQse",
+                Role = UserRole.CertificateCreator, CreatedAt = seedDate
+            },
+            new User
+            {
+                Id = 3, FirstName = "Viewer", LastName = "User",
+                Email = "viewer@sertifika.com",
+                PasswordHash = "$2a$11$Dgmd4mzdUuNZtRYdv6SMVewnMcKrtDwxR1SLr048u43oh7khLw0pi",
+                Role = UserRole.Viewer, CreatedAt = seedDate
+            }
         );
     }
 }

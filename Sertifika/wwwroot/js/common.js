@@ -29,13 +29,14 @@ $.ajaxSetup({
     }
 });
 
-// Global 401 handler
-$(document).ajaxError(function(event, xhr) {
-    if (xhr.status === 401) {
-        CURRENT_USER = null;
-        toastr.error('Oturum suresi doldu');
-        setTimeout(function() { window.location.href = '/Panel/Login'; }, 1500);
-    }
+// Global 401 handler - skip if already on login page or explicitly opted out
+$(document).ajaxError(function(event, xhr, settings) {
+    if (xhr.status !== 401) return;
+    if (settings && settings.skipAuthRedirect) return;
+    if (/\/Panel\/Login/i.test(window.location.pathname)) return;
+    CURRENT_USER = null;
+    toastr.error('Oturum suresi doldu');
+    setTimeout(function() { window.location.href = '/Panel/Login'; }, 1500);
 });
 
 // API Helpers
