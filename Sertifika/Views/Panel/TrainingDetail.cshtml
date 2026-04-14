@@ -10,43 +10,66 @@
 
     <div data-bind="visible: !isLoading(), with: training">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-                <h2 data-bind="text: name"></h2>
-                <span class="badge" data-bind="text: $parent.getStatusLabel(status), css: $parent.getStatusClass(status)"></span>
+                <div class="d-flex align-items-center gap-2">
+                    <h2 class="mb-0" data-bind="text: name"></h2>
+                    <span class="badge" data-bind="text: $parent.getStatusLabel(status), css: $parent.getStatusClass(status)"></span>
+                </div>
+                <div class="text-muted small mt-1">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    <span data-bind="text: $parent.formatDateRange(trainingDate, endDate)"></span>
+                    <span class="mx-2">·</span>
+                    <i class="bi bi-building me-1"></i>
+                    <span data-bind="text: companyName || '-'"></span>
+                    <!-- ko if: instructorName -->
+                    <span class="mx-2">·</span>
+                    <i class="bi bi-pen me-1"></i>
+                    <span data-bind="text: instructorName"></span>
+                    <!-- /ko -->
+                </div>
             </div>
-            <a asp-action="Trainings" class="btn btn-outline-secondary">
+            <a asp-action="Trainings" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>Geri
             </a>
         </div>
 
-        <!-- Info Card -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3"><strong>Tarih:</strong> <span data-bind="text: $parent.formatDateRange(trainingDate, endDate)"></span></div>
-                    <div class="col-md-3"><strong>Firma:</strong> <span data-bind="text: companyName || '-'"></span></div>
-                    <div class="col-md-3"><strong>Sablon:</strong> <span data-bind="text: template ? template.name : '-'"></span></div>
-                    <div class="col-md-3"><strong>Imzalar:</strong> <span data-bind="text: trainingSignatures ? trainingSignatures.map(function(ts) { return ts.signature ? ts.signature.name : ''; }).join(', ') : '-'"></span></div>
-                </div>
+        <!-- Stepper -->
+        <div class="workflow-steps mb-4">
+            <div class="step" data-bind="css: $parent.stepClass(0)">
+                <div class="step-circle">1</div>
+                <div class="step-label">Katilimcilar<br><small data-bind="text: $parent.totalParticipants() + ' kisi'"></small></div>
+            </div>
+            <div class="step-line" data-bind="css: { done: $parent.currentStep() > 0 }"></div>
+            <div class="step" data-bind="css: $parent.stepClass(1)">
+                <div class="step-circle">2</div>
+                <div class="step-label">Sertifika Uretimi<br><small data-bind="text: $parent.generatedCount() + '/' + $parent.totalParticipants() + ' uretildi'"></small></div>
+            </div>
+            <div class="step-line" data-bind="css: { done: $parent.currentStep() > 1 }"></div>
+            <div class="step" data-bind="css: $parent.stepClass(2)">
+                <div class="step-circle">3</div>
+                <div class="step-label">Dagitim<br><small data-bind="text: $parent.withEmailCount() + ' hazir'"></small></div>
             </div>
         </div>
 
         <!-- Actions -->
-        <div class="btn-group mb-4 flex-wrap">
-            <button class="btn btn-outline-primary" data-bind="click: $parent.previewCertificate">
-                <i class="bi bi-eye me-1"></i>Onizleme
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <button class="btn btn-primary" data-bind="click: $parent.generateCertificates, disable: !$parent.canGenerate() || $parent.isGenerating()">
+                <span class="spinner-border spinner-border-sm me-1" data-bind="visible: $parent.isGenerating"></span>
+                <i class="bi bi-file-earmark-pdf me-1" data-bind="visible: !$parent.isGenerating()"></i>
+                Sertifika Uret
             </button>
-            <button class="btn btn-primary" data-bind="click: $parent.generateCertificates">
-                <i class="bi bi-file-earmark-pdf me-1"></i>Sertifika Uret
+            <button class="btn btn-outline-primary" data-bind="click: $parent.previewTemplate">
+                <i class="bi bi-eye me-1"></i>Sablon Onizleme
             </button>
-            <button class="btn btn-outline-success" data-bind="click: $parent.downloadZip">
+            <button class="btn btn-outline-success" data-bind="click: $parent.downloadZip, disable: !$parent.canDownloadZip()"
+                    data-bs-toggle="tooltip" data-bind-title="canDownloadZip() ? '' : 'Once sertifikalari uretin'">
                 <i class="bi bi-download me-1"></i>ZIP Indir
             </button>
-            <button class="btn btn-outline-info" data-bind="click: $parent.sendCertificates">
+            <button class="btn btn-outline-info" data-bind="click: $parent.sendCertificates, disable: !$parent.canSendEmail()">
                 <i class="bi bi-envelope me-1"></i>E-posta Gonder
             </button>
-            <button class="btn btn-outline-info" data-bind="click: $parent.openSendToContactModal">
+            <button class="btn btn-outline-info" data-bind="click: $parent.openSendToContactModal, disable: !$parent.canDownloadZip()">
                 <i class="bi bi-person me-1"></i>Kisiye Gonder
             </button>
         </div>
@@ -55,69 +78,60 @@
     <!-- Participants -->
     <div data-bind="visible: !isLoading()">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4>Katilimcilar</h4>
+            <h4 class="mb-0">Katilimcilar <span class="text-muted small" data-bind="text: '(' + totalParticipants() + ')'"></span></h4>
             <div class="btn-group">
-                <button class="btn btn-sm btn-outline-primary" data-bind="click: openParticipantModal">
+                <button class="btn btn-sm btn-primary" data-bind="click: openParticipantModal">
                     <i class="bi bi-person-plus me-1"></i>Katilimci Ekle
                 </button>
                 <button class="btn btn-sm btn-outline-success" data-bind="click: openExcelModal">
                     <i class="bi bi-file-earmark-excel me-1"></i>Excel Yukle
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#excelHelpInfo" title="Excel formati hakkinda bilgi">
-                    <i class="bi bi-info-circle"></i>
-                </button>
-            </div>
-        </div>
-        <div class="collapse mb-3" id="excelHelpInfo">
-            <div class="card card-body small py-2 px-3">
-                <p class="mb-1"><strong>Excel dosyaniz 4 sutundan olusmalidir:</strong></p>
-                <table class="table table-sm table-bordered mb-1" style="font-size: 0.8rem;">
-                    <thead class="table-light">
-                        <tr><th>A</th><th>B</th><th>C</th><th>D</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr class="text-muted"><td>Ad</td><td>Soyad</td><td>Email</td><td>Firma</td></tr>
-                        <tr><td>Ahmet</td><td>Yilmaz</td><td>ahmet@firma.com</td><td>ABC Ltd.</td></tr>
-                        <tr><td>Ayse</td><td>Demir</td><td>ayse@firma.com</td><td>XYZ A.S.</td></tr>
-                    </tbody>
-                </table>
-                <ul class="mb-0 ps-3" style="font-size: 0.75rem;">
-                    <li>Ilk satir baslik satiri olabilir (opsiyonel, otomatik algilanir)</li>
-                    <li>Yalnizca <strong>Firma</strong> sutunu bos birakilabilir</li>
-                    <li>Bos satirlar otomatik atlanir</li>
-                </ul>
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover">
+        <div data-bind="visible: totalParticipants() === 0" class="text-center py-5 border rounded bg-light">
+            <i class="bi bi-people display-3 text-muted"></i>
+            <p class="mt-2 mb-0 text-muted">Henuz katilimci eklenmemis.</p>
+            <p class="small text-muted">Tek tek ekleyebilir veya Excel ile toplu yukleyebilirsiniz.</p>
+        </div>
+
+        <div class="table-responsive" data-bind="visible: totalParticipants() > 0">
+            <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Ad</th>
-                        <th>Soyad</th>
+                        <th>Ad Soyad</th>
                         <th>E-posta</th>
                         <th>Firma</th>
                         <th>Sertifika No</th>
-                        <th>Islem</th>
+                        <th style="width: 160px;" class="text-end">Islem</th>
                     </tr>
                 </thead>
                 <tbody data-bind="foreach: participants">
                     <tr>
-                        <td data-bind="text: firstName"></td>
-                        <td data-bind="text: lastName"></td>
-                        <td data-bind="text: email || '-'"></td>
-                        <td data-bind="text: companyName || '-'"></td>
-                        <td><code data-bind="text: certificateNumber || '-'"></code></td>
+                        <td data-bind="text: firstName + ' ' + lastName"></td>
+                        <td class="text-muted" data-bind="text: email || '-'"></td>
+                        <td class="text-muted" data-bind="text: companyName || '-'"></td>
                         <td>
                             <!-- ko if: certificateNumber -->
-                            <a class="btn btn-sm btn-outline-success" data-bind="attr: { href: '/api/certificates/download/' + certificateNumber }" target="_blank" title="PDF Gor">
+                            <code class="small" data-bind="text: certificateNumber"></code>
+                            <!-- /ko -->
+                            <!-- ko ifnot: certificateNumber -->
+                            <span class="badge bg-secondary">Uretilmedi</span>
+                            <!-- /ko -->
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <!-- ko if: certificateNumber -->
+                            <button class="btn btn-sm btn-outline-info me-1" data-bind="click: $parent.previewParticipant" title="Onizleme">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <a class="btn btn-sm btn-outline-success me-1" data-bind="attr: { href: '/api/certificates/download/' + certificateNumber }" target="_blank" title="PDF Indir">
                                 <i class="bi bi-file-pdf"></i>
                             </a>
                             <!-- /ko -->
-                            <button class="btn btn-sm btn-outline-primary" data-bind="click: $parent.openEditParticipantModal">
+                            <button class="btn btn-sm btn-outline-primary me-1" data-bind="click: $parent.openEditParticipantModal" title="Duzenle">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteParticipant">
+                            <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteParticipant" title="Sil">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </td>
@@ -125,46 +139,52 @@
                 </tbody>
             </table>
         </div>
-
-        <div data-bind="visible: participants().length === 0" class="text-center py-3 text-muted">
-            Katilimci yok
-        </div>
     </div>
 
-    <!-- Add/Edit Participant Modal -->
+    <!-- Participant Modal (CRM style) -->
     <div class="modal fade" id="participantModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" data-bind="text: isEditingParticipant() ? 'Katilimci Duzenle' : 'Katilimci Ekle'"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i><span data-bind="text: isEditingParticipant() ? 'Katilimci Duzenle' : 'Katilimci Ekle'"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: saveParticipant">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Ad</label>
-                                <input type="text" class="form-control" data-bind="textInput: participantFirstName" required>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold" for="p-first-name">Ad <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                    <input type="text" id="p-first-name" class="form-control" data-bind="textInput: participantFirstName" required>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Soyad</label>
-                                <input type="text" class="form-control" data-bind="textInput: participantLastName" required>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold" for="p-last-name">Soyad <span class="text-danger">*</span></label>
+                                <input type="text" id="p-last-name" class="form-control" data-bind="textInput: participantLastName" required>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">E-posta</label>
-                            <input type="email" class="form-control" data-bind="textInput: participantEmail">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Firma</label>
-                            <input type="text" class="form-control" data-bind="textInput: participantCompanyName">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold" for="p-email">E-posta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" id="p-email" class="form-control" data-bind="textInput: participantEmail" placeholder="sertifikalar bu adrese gonderilir">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold" for="p-company">Firma</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
+                                    <input type="text" id="p-company" class="form-control" data-bind="textInput: participantCompanyName">
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
                         <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
                             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                            <span data-bind="text: isEditingParticipant() ? 'Guncelle' : 'Ekle'"></span>
+                            <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>
+                            <span data-bind="text: isEditingParticipant() ? 'Guncelle' : 'Kaydet'"></span>
                         </button>
                     </div>
                 </form>
@@ -174,31 +194,29 @@
 
     <!-- Excel Upload Modal -->
     <div class="modal fade" id="excelModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Excel Yukle</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-excel me-2"></i>Excel ile Toplu Yukle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: uploadExcel">
-                    <div class="modal-body">
-                        <div class="alert alert-info small py-2 mb-3">
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info small py-2">
                             <i class="bi bi-info-circle me-1"></i>
-                            Dosya 4 sutundan olusmalidir: Ad, Soyad, Email, Firma.
-                            <a href="#" data-bind="click: downloadExcelTemplate" class="fw-semibold">
+                            4 sutun: <strong>Ad, Soyad, Email, Firma</strong>.
+                            <a href="#" data-bind="click: downloadExcelTemplate" class="fw-semibold ms-2">
                                 <i class="bi bi-download me-1"></i>Sablon indir
                             </a>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Excel Dosyasi (.xlsx)</label>
-                            <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls" required>
-                        </div>
+                        <label class="form-label small fw-semibold" for="excel-file">Excel Dosyasi (.xlsx / .xls)</label>
+                        <input type="file" id="excel-file" class="form-control" accept=".xlsx,.xls" required>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-success" data-bind="disable: isSaving">
                             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                            Yukle
+                            <i class="bi bi-upload me-1" data-bind="visible: !isSaving()"></i>Yukle
                         </button>
                     </div>
                 </form>
@@ -208,32 +226,56 @@
 
     <!-- Send to Contact Modal -->
     <div class="modal fade" id="sendContactModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Kisiye Gonder</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Kisiye Gonder</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: sendToContact">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Alici Adi</label>
-                            <input type="text" class="form-control" data-bind="textInput: contactName" required>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info small py-2 mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Tum uretilmis sertifikalar bu kisiye tek e-postada gonderilir.
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">E-posta</label>
-                            <input type="email" class="form-control" data-bind="textInput: contactEmail" required>
+                            <label class="form-label small fw-semibold" for="contact-name">Alici Adi</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                <input type="text" id="contact-name" class="form-control" data-bind="textInput: contactName" required>
+                            </div>
                         </div>
-                        <div class="form-text">Tum sertifikalar bu kisiye gonderilecektir.</div>
+                        <div class="mb-0">
+                            <label class="form-label small fw-semibold" for="contact-email">E-posta</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                                <input type="email" id="contact-email" class="form-control" data-bind="textInput: contactEmail" required>
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-info text-white" data-bind="disable: isSaving">
                             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                            Gonder
+                            <i class="bi bi-send me-1" data-bind="visible: !isSaving()"></i>Gonder
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-pdf me-2"></i>Sertifika Onizleme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0" style="height: 80vh;">
+                    <iframe data-bind="attr: { src: previewSrc }" style="width:100%; height:100%; border:none;"></iframe>
+                </div>
             </div>
         </div>
     </div>

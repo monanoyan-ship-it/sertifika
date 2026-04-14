@@ -74,6 +74,24 @@ function apiDelete(path) {
     return $.ajax({ url: API_BASE + path, method: 'DELETE' });
 }
 
+// jqXHR fail response'undan kullaniciya anlamli bir mesaj cikar.
+// Sunucu {error: '...'} veya {message: '...'} doner; raw HTML/500 fallback.
+function extractError(xhr, fallback) {
+    if (!xhr) return fallback || 'Bilinmeyen hata';
+    if (xhr.responseJSON) {
+        return xhr.responseJSON.error || xhr.responseJSON.message || fallback || 'Islem basarisiz';
+    }
+    var text = (xhr.responseText || '').trim();
+    if (!text) return fallback || ('HTTP ' + xhr.status);
+    try {
+        var parsed = JSON.parse(text);
+        return parsed.error || parsed.message || fallback || 'Islem basarisiz';
+    } catch (e) {}
+    // HTML hata sayfasi vs. - ilk 200 karakter
+    if (text.length > 200) text = text.substring(0, 200) + '...';
+    return text;
+}
+
 function logout() {
     apiPost('/auth/logout').always(function() {
         CURRENT_USER = null;

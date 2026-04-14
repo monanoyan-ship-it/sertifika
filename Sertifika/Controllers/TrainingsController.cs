@@ -119,6 +119,18 @@ public class TrainingsController : ControllerBase
         {
             return NotFound(new { error = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(502, new { error = "PDF servisi calismiyor. Python servisi baslatilmis olmali." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Onizleme olusturulamadi: " + ex.Message });
+        }
     }
 
     [HttpGet("{id}/download-zip")]
@@ -128,7 +140,7 @@ public class TrainingsController : ControllerBase
         try
         {
             var zipBytes = await _generation.DownloadZipAsync(id);
-            return File(zipBytes, "application/zip", $"certificates_training_{id}.zip");
+            return File(zipBytes, "application/zip", $"sertifikalar_training_{id}.zip");
         }
         catch (ArgumentException ex)
         {
@@ -137,6 +149,10 @@ public class TrainingsController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(502, new { error = "PDF servisi calismiyor. Python servisi baslatilmis olmali." });
         }
     }
 

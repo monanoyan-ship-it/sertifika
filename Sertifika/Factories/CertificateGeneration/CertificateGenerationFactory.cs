@@ -52,7 +52,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
         var participantList = (await _participantService.GetByTrainingIdAsync(trainingId)).ToList();
         if (participantList.Count == 0)
-            throw new InvalidOperationException("No participants found for this training");
+            throw new InvalidOperationException("Bu egitime henuz katilimci eklenmemis.");
 
         var template = training.Template;
         var layout = ParseLayout(template.LayoutJson);
@@ -202,7 +202,7 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
         var snapshots = (await _snapshotService.GetByTrainingIdAsync(trainingId)).ToList();
         if (snapshots.Count == 0)
-            throw new InvalidOperationException("No certificates generated yet. Run generate first.");
+            throw new InvalidOperationException("Henuz sertifika uretilmemis. Once 'Sertifika Uret' butonuna basin.");
 
         using var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))

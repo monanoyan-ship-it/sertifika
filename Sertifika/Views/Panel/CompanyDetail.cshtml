@@ -179,26 +179,50 @@
         </div>
     </div>
 
-    <!-- Contact Modal -->
+    <!-- Contact Modal (CRM) -->
     <div class="modal fade" id="contactModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" data-bind="text: isEditingContact() ? 'Kisi Duzenle' : 'Kisi Ekle'"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i><span data-bind="text: isEditingContact() ? 'Kisi Duzenle' : 'Kisi Ekle'"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: saveContact">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3"><label class="form-label">Ad</label><input type="text" class="form-control" data-bind="textInput: contactFirstName" required></div>
-                            <div class="col-md-6 mb-3"><label class="form-label">Soyad</label><input type="text" class="form-control" data-bind="textInput: contactLastName" required></div>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Ad <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" data-bind="textInput: contactFirstName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Soyad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" data-bind="textInput: contactLastName" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">E-posta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control" data-bind="textInput: contactEmail">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Telefon</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-telephone"></i></span>
+                                    <input type="tel" class="form-control" data-bind="textInput: contactPhone">
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3"><label class="form-label">E-posta</label><input type="email" class="form-control" data-bind="textInput: contactEmail"></div>
-                        <div class="mb-3"><label class="form-label">Telefon</label><input type="tel" class="form-control" data-bind="textInput: contactPhone"></div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
-                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">Kaydet</button>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        </button>
                     </div>
                 </form>
             </div>

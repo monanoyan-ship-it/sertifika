@@ -67,37 +67,49 @@
         <p>Aramayla eslesen firma bulunamadi.</p>
     </div>
 
-    <!-- Create/Edit Modal -->
+    <!-- Create/Edit Modal (CRM) -->
     <div class="modal fade" id="formModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" data-bind="text: isEditing() ? 'Firma Duzenle' : 'Yeni Firma'"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-building me-2"></i><span data-bind="text: isEditing() ? 'Firma Duzenle' : 'Yeni Firma'"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: saveCompany">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Firma Adi</label>
-                            <input type="text" class="form-control" data-bind="textInput: formName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">E-posta</label>
-                            <input type="email" class="form-control" data-bind="textInput: formContactEmail">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Telefon</label>
-                            <input type="text" class="form-control" data-bind="textInput: formContactPhone">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Adres</label>
-                            <textarea class="form-control" rows="2" data-bind="textInput: formAddress"></textarea>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Firma Adi <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
+                                    <input type="text" class="form-control" data-bind="textInput: formName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">E-posta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control" data-bind="textInput: formContactEmail">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Telefon</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-telephone"></i></span>
+                                    <input type="text" class="form-control" data-bind="textInput: formContactPhone">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Adres</label>
+                                <textarea class="form-control" rows="2" data-bind="textInput: formAddress" placeholder="Fatura / sevkiyat adresi"></textarea>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
                         <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
                             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>
                             <span data-bind="text: isEditing() ? 'Guncelle' : 'Kaydet'"></span>
                         </button>
                     </div>

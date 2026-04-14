@@ -59,7 +59,7 @@ public class DistributionFactory : IDistributionFactory
         }
 
         if (recipients.Count == 0)
-            throw new InvalidOperationException("No participants with email and generated certificates found");
+            throw new InvalidOperationException("Sertifikasi uretilmis ve e-postasi dolu katilimci yok. Once 'Sertifika Uret' butonuna basin ve katilimcilarin e-postalarini kontrol edin.");
 
         var result = await _emailService.SendBatchAsync(recipients, training.Name, training.CompanyName);
 
