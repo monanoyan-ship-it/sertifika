@@ -3,8 +3,11 @@
 }
 
 <div class="container mt-4" id="templatesApp">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Sablon Yonetimi</h2>
+    <div class="page-header">
+        <div>
+            <h2>Sablon Yonetimi</h2>
+            <div class="subtitle">Sertifika tasarimlarini yonetin, hizli onizleme ile kontrol edin.</div>
+        </div>
         <a asp-action="TemplateEditor" class="btn btn-primary">
             <i class="bi bi-plus-circle me-1"></i> Yeni Sablon
         </a>
@@ -15,24 +18,32 @@
     </div>
 
     <div class="row g-3" data-bind="foreach: templates, visible: !isLoading()">
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
+        <div class="col-md-6 col-xl-4">
+            <div class="card template-tile h-100">
+                <div class="card-preview" data-bind="style: { backgroundImage: backgroundImageUrl ? 'url(' + backgroundImageUrl + ')' : '' }">
+                    <!-- ko ifnot: backgroundImageUrl -->
+                    <div class="empty"><i class="bi bi-image"></i></div>
+                    <!-- /ko -->
+                    <button class="quick-preview" data-bind="click: $parent.previewTemplate" title="Hizli Onizleme">
+                        <i class="bi bi-eye me-1"></i>Onizleme
+                    </button>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title" data-bind="text: name"></h5>
-                    <p class="text-muted" data-bind="text: description || ''"></p>
-                    <span class="badge bg-secondary" data-bind="text: orientation === 0 ? 'Yatay' : 'Dikey'"></span>
-                    <!-- ko if: templateSignatures && templateSignatures.length > 0 -->
-                    <div class="mt-2">
+                    <h5 class="card-title mb-1" data-bind="text: name"></h5>
+                    <p class="text-muted small mb-2" data-bind="text: description || ''"></p>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <span class="badge bg-light text-dark border" data-bind="text: orientation === 0 ? 'Yatay' : 'Dikey'"></span>
+                        <!-- ko if: templateSignatures && templateSignatures.length > 0 -->
                         <!-- ko foreach: templateSignatures -->
-                        <span class="badge bg-light text-dark border me-1">
-                            <i class="bi bi-pen me-1"></i><span data-bind="text: (instructorName || signature.name) + ' - ' + (instructorTitle || signature.title)"></span>
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-pen me-1"></i><span data-bind="text: (instructorName || signature.name)"></span>
                         </span>
                         <!-- /ko -->
+                        <!-- /ko -->
+                        <!-- ko ifnot: templateSignatures && templateSignatures.length > 0 -->
+                        <span class="badge bg-light text-muted border"><i class="bi bi-info-circle me-1"></i>Imza yok</span>
+                        <!-- /ko -->
                     </div>
-                    <!-- /ko -->
-                    <!-- ko ifnot: templateSignatures && templateSignatures.length > 0 -->
-                    <div class="mt-2 text-muted small"><i class="bi bi-info-circle me-1"></i>Imza atanmamis</div>
-                    <!-- /ko -->
                 </div>
                 <div class="card-footer bg-transparent d-flex gap-2">
                     <a class="btn btn-sm btn-outline-primary" data-bind="attr: { href: '/Panel/TemplateEditor/' + id }">
@@ -41,17 +52,40 @@
                     <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.openSignatureModal">
                         <i class="bi bi-pen me-1"></i>Imzalar
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteTemplate">
-                        <i class="bi bi-trash me-1"></i>Sil
+                    <button class="btn btn-sm btn-outline-info" data-bind="click: $parent.previewTemplate" title="PDF Onizleme">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger ms-auto" data-bind="click: $parent.deleteTemplate">
+                        <i class="bi bi-trash"></i>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div data-bind="visible: !isLoading() && templates().length === 0" class="text-center py-5 text-muted">
-        <i class="bi bi-layout-text-window display-1"></i>
-        <p class="mt-2">Henuz sablon yok.</p>
+    <div data-bind="visible: !isLoading() && templates().length === 0" class="empty-state">
+        <i class="bi bi-layout-text-window"></i>
+        <div class="title mt-2">Henuz sablon yok</div>
+        <p class="mb-0">Yeni bir sablon olusturarak baslayin.</p>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal fade" id="templatePreviewModal" tabindex="-1" aria-labelledby="templatePreviewTitle">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="templatePreviewTitle"><i class="bi bi-file-earmark-pdf me-2"></i><span data-bind="text: previewTemplateName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body p-0" style="height: 78vh; background: #f1f5f9;">
+                    <div data-bind="visible: isPreviewLoading" class="d-flex align-items-center justify-content-center h-100">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <iframe data-bind="attr: { src: previewSrc }, visible: !isPreviewLoading() && previewSrc()"
+                            style="width:100%; height:100%; border:none;" title="Sablon onizleme"></iframe>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Signature Assignment Modal -->

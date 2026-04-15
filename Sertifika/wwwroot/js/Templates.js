@@ -9,7 +9,12 @@ function TemplatesViewModel() {
 
     self.signatureRows = ko.observableArray([]);
 
-    var sigModal;
+    // Preview state
+    self.previewSrc = ko.observable('');
+    self.previewTemplateName = ko.observable('');
+    self.isPreviewLoading = ko.observable(false);
+
+    var sigModal, previewModal;
 
     function makeSignatureRow(sig, existing) {
         return {
@@ -97,6 +102,39 @@ function TemplatesViewModel() {
             .always(function() { self.isSaving(false); });
     };
 
+    self.previewTemplate = function(tpl) {
+        self.previewTemplateName(tpl.name || 'Sablon Onizleme');
+        self.previewSrc('');
+        self.isPreviewLoading(true);
+        previewModal.show();
+
+        fetch(API_BASE + '/templates/' + tpl.id + '/preview', { method: 'GET', credentials: 'same-origin' })
+            .then(function(res) {
+                if (!res.ok) {
+                    return res.text().then(function(t) {
+                        var msg = t;
+                        try { msg = JSON.parse(t).error || JSON.parse(t).message || t; } catch (e) {}
+                        throw new Error(msg || ('HTTP ' + res.status));
+                    });
+                }
+                return res.blob();
+            })
+            .then(function(blob) {
+                var blobUrl = URL.createObjectURL(blob);
+                self.previewSrc(blobUrl);
+                self.isPreviewLoading(false);
+                document.getElementById('templatePreviewModal').addEventListener('hidden.bs.modal', function() {
+                    URL.revokeObjectURL(blobUrl);
+                    self.previewSrc('');
+                }, { once: true });
+            })
+            .catch(function(err) {
+                self.isPreviewLoading(false);
+                previewModal.hide();
+                toastr.error('Onizleme: ' + (err.message || 'Hata'));
+            });
+    };
+
     self.deleteTemplate = function(tpl) {
         showConfirm('Sablonu silmek istiyor musunuz?').then(function(ok) {
             if (!ok) return;
@@ -111,6 +149,7 @@ function TemplatesViewModel() {
 
     $(document).ready(function() {
         sigModal = new bootstrap.Modal(document.getElementById('signatureModal'));
+        previewModal = new bootstrap.Modal(document.getElementById('templatePreviewModal'));
         self.loadData();
     });
 }

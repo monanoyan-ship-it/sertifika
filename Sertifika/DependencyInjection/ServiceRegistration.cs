@@ -13,6 +13,7 @@ using Sertifika.Factories.Distribution;
 using Sertifika.Factories.OneDriveAccounts;
 using Sertifika.Factories.SmtpAccounts;
 using Sertifika.Factories.EmailTemplates;
+using Sertifika.Factories.Users;
 using Sertifika.Infrastructure;
 
 namespace Sertifika.DependencyInjection;
@@ -56,6 +57,7 @@ public static class ServiceRegistration
         services.AddScoped<IOneDriveAccountCrudFactory, OneDriveAccountCrudFactory>();
         services.AddScoped<ISmtpAccountCrudFactory, SmtpAccountCrudFactory>();
         services.AddScoped<IEmailTemplateCrudFactory, EmailTemplateCrudFactory>();
+        services.AddScoped<IUserCrudFactory, UserCrudFactory>();
 
         return services;
     }

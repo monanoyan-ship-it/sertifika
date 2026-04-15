@@ -34,7 +34,30 @@ function SettingsViewModel() {
     self.smtpUseSsl = ko.observable(true);
     self.smtpIsDefault = ko.observable(false);
 
-    var formModal, smtpModal;
+    var formModal, smtpModal, userModal, passwordModal;
+
+    // ─── Tabs & user management state ───
+    self.activeTab = ko.observable('users');
+    self.isAdmin = ko.observable(false);
+
+    self.users = ko.observableArray([]);
+    self.isEditingUser = ko.observable(false);
+    self.isSavingUser = ko.observable(false);
+    self.editingUserId = null;
+
+    self.userFirstName = ko.observable('');
+    self.userLastName = ko.observable('');
+    self.userEmail = ko.observable('');
+    self.userPassword = ko.observable('');
+    self.userRole = ko.observable('Viewer');
+
+    self.newPassword = ko.observable('');
+    self.passwordUserLabel = ko.observable('');
+    self.passwordUserId = null;
+
+    self.roleLabel = function(role) {
+        return { Admin: 'Admin', CertificateCreator: 'Operator', Viewer: 'Goruntuleyici' }[role] || role;
+    };
 
     self.loadData = function() {
         self.isLoading(true);
@@ -48,6 +71,103 @@ function SettingsViewModel() {
             toastr.error('Hesaplar yuklenemedi');
         }).always(function() {
             self.isLoading(false);
+        });
+
+        // Probe /users — 200 means Admin, 403 means not admin (hide section)
+        self.loadUsers();
+    };
+
+    self.loadUsers = function() {
+        $.ajax({ url: API_BASE + '/users', method: 'GET', skipAuthRedirect: true })
+            .done(function(data) {
+                self.isAdmin(true);
+                self.users(data);
+            })
+            .fail(function(xhr) {
+                if (xhr.status === 403 || xhr.status === 401) {
+                    self.isAdmin(false);
+                } else {
+                    toastr.error('Kullanicilar yuklenemedi');
+                }
+            });
+    };
+
+    // ─── User CRUD ───
+
+    self.openUserModal = function() {
+        self.isEditingUser(false);
+        self.editingUserId = null;
+        self.userFirstName('');
+        self.userLastName('');
+        self.userEmail('');
+        self.userPassword('');
+        self.userRole('Viewer');
+        userModal.show();
+    };
+
+    self.openEditUserModal = function(u) {
+        self.isEditingUser(true);
+        self.editingUserId = u.id;
+        self.userFirstName(u.firstName);
+        self.userLastName(u.lastName);
+        self.userEmail(u.email);
+        self.userPassword('');
+        self.userRole(u.role);
+        userModal.show();
+    };
+
+    self.saveUser = function() {
+        self.isSavingUser(true);
+        var body = {
+            firstName: self.userFirstName(),
+            lastName: self.userLastName(),
+            email: self.userEmail(),
+            role: self.userRole()
+        };
+        var promise;
+        if (self.isEditingUser()) {
+            promise = apiPut('/users/' + self.editingUserId, body);
+        } else {
+            body.password = self.userPassword();
+            promise = apiPost('/users', body);
+        }
+        promise
+            .done(function() {
+                userModal.hide();
+                toastr.success(self.isEditingUser() ? 'Kullanici guncellendi' : 'Kullanici olusturuldu');
+                self.loadUsers();
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Kayit basarisiz')); })
+            .always(function() { self.isSavingUser(false); });
+    };
+
+    self.openPasswordModal = function(u) {
+        self.passwordUserId = u.id;
+        self.passwordUserLabel(u.firstName + ' ' + u.lastName + ' (' + u.email + ')');
+        self.newPassword('');
+        passwordModal.show();
+    };
+
+    self.savePassword = function() {
+        self.isSavingUser(true);
+        apiPut('/users/' + self.passwordUserId + '/password', { newPassword: self.newPassword() })
+            .done(function() {
+                passwordModal.hide();
+                toastr.success('Sifre guncellendi');
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Sifre guncellenemedi')); })
+            .always(function() { self.isSavingUser(false); });
+    };
+
+    self.deleteUser = function(u) {
+        showConfirm(u.firstName + ' ' + u.lastName + ' kullanicisini silmek istiyor musunuz?').then(function(ok) {
+            if (!ok) return;
+            apiDelete('/users/' + u.id)
+                .done(function() {
+                    toastr.success('Kullanici silindi');
+                    self.loadUsers();
+                })
+                .fail(function(xhr) { toastr.error(extractError(xhr, 'Silinemedi')); });
         });
     };
 
@@ -292,6 +412,8 @@ function SettingsViewModel() {
     $(document).ready(function() {
         formModal = new bootstrap.Modal(document.getElementById('formModal'));
         smtpModal = new bootstrap.Modal(document.getElementById('smtpModal'));
+        userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
         self.loadData();
     });
 }

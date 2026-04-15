@@ -74,12 +74,32 @@ public class TemplatesController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("{id}/preview")]
+    public async Task<IActionResult> PreviewStoredTemplate(int id)
+    {
+        var template = await _crud.GetTemplateWithSignaturesAsync(id);
+        if (template == null) return NotFound();
+
+        var request = new TemplatePreviewRequest
+        {
+            LayoutJson = template.LayoutJson,
+            Orientation = (int)template.Orientation,
+            Signatures = null
+        };
+        return await BuildPreviewAsync(template, request);
+    }
+
     [HttpPost("{id}/preview")]
     [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<IActionResult> PreviewTemplate(int id, [FromBody] TemplatePreviewRequest request)
     {
         var template = await _crud.GetTemplateWithSignaturesAsync(id);
         if (template == null) return NotFound();
+        return await BuildPreviewAsync(template, request);
+    }
+
+    private async Task<IActionResult> BuildPreviewAsync(CertificateTemplate template, TemplatePreviewRequest request)
+    {
 
         var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
 
@@ -148,9 +168,11 @@ public class TemplatesController : ControllerBase
         {
             ["HolderName"] = "Ornek Katilimci",
             ["TrainingName"] = "Ornek Egitim Adi",
+            ["ProgramName"] = "Ornek Program Adi",
             ["TrainingDate"] = DateTime.Now.ToString("dd.MM.yyyy"),
             ["CompanyName"] = "Ornek Firma A.S.",
             ["CertificateNo"] = "CERT-ONIZLEME-0001",
+            ["InstructorName"] = "Ornek Egitmen",
             ["QrCode"] = "https://sertifika.example.com/verify/CERT-ONIZLEME-0001"
         };
 

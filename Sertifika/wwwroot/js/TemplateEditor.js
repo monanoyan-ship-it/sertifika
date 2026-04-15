@@ -544,7 +544,7 @@ function TemplateEditorViewModel() {
 
     // ─── SNAP HELPERS ───
 
-    var SNAP_TOLERANCE = 1.2; // percent
+    var SNAP_TOLERANCE = 1.5; // percent
 
     function gatherSnapPoints(excludeField) {
         var vs = [0, 25, 50, 75, 100];  // page verticals
@@ -724,6 +724,45 @@ function TemplateEditorViewModel() {
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
     }
+
+    // ─── AUTO-ALIGN helpers ───
+
+    self.centerHorizontally = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        sel.data.x = Math.max(0, Math.min(100 - sel.data.width, 50 - sel.data.width / 2));
+        self.onFieldChanged();
+    };
+    self.centerVertically = function() {
+        var sel = self.selectedItem();
+        if (!sel || sel.kind !== 'field') return;
+        sel.data.y = Math.max(0, Math.min(100 - sel.data.height, 50 - sel.data.height / 2));
+        self.onFieldChanged();
+    };
+    self.alignAllCenterH = function() {
+        // Horizontally center every field on the page
+        self.fields().forEach(function(f) {
+            f.x = Math.max(0, Math.min(100 - f.width, 50 - f.width / 2));
+        });
+        self.renderAll();
+        toastr.info('Tum alanlar yatay orta eksende hizalandi');
+    };
+    self.distributeVertical = function() {
+        var fs = self.fields().slice().sort(function(a, b) { return a.y - b.y; });
+        if (fs.length < 2) return;
+        var top = fs[0].y, bot = fs[fs.length - 1].y + fs[fs.length - 1].height;
+        var totalH = fs.reduce(function(acc, f) { return acc + f.height; }, 0);
+        var gap = (bot - top - totalH) / (fs.length - 1);
+        var cursor = top;
+        fs.forEach(function(f) { f.y = cursor; cursor += f.height + gap; });
+        self.renderAll();
+        toastr.info('Dikey bosluklar esitlendi');
+    };
+    self.smartArrange = function() {
+        // "Sihirbazla hizala": yatay ortala + dikey bosluklari esitle
+        self.alignAllCenterH();
+        self.distributeVertical();
+    };
 
     // ─── SERIALIZE ───
 

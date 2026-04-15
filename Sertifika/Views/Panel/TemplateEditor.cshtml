@@ -43,6 +43,22 @@
                 <button class="btn btn-sm" data-bind="click: function(){ useSampleData(!useSampleData()); }, css: { 'btn-success': useSampleData(), 'btn-outline-success': !useSampleData() }" title="Ornek Veri ile Goster">
                     <i class="bi bi-magic"></i>
                 </button>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" title="Hizalama">
+                        <i class="bi bi-align-center"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><h6 class="dropdown-header">Secili alan</h6></li>
+                        <li><a class="dropdown-item" href="#" data-bind="click: centerHorizontally"><i class="bi bi-align-center me-2"></i>Yatay ortala</a></li>
+                        <li><a class="dropdown-item" href="#" data-bind="click: centerVertically"><i class="bi bi-align-middle me-2"></i>Dikey ortala</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Tum alanlar</h6></li>
+                        <li><a class="dropdown-item" href="#" data-bind="click: alignAllCenterH"><i class="bi bi-text-center me-2"></i>Tumunu yatay ortala</a></li>
+                        <li><a class="dropdown-item" href="#" data-bind="click: distributeVertical"><i class="bi bi-distribute-vertical me-2"></i>Dikey bosluklari esitle</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item fw-semibold" href="#" data-bind="click: smartArrange"><i class="bi bi-stars me-2"></i>Sihirbazla hizala</a></li>
+                    </ul>
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn btn-sm btn-outline-info" data-bind="click: previewTemplate, disable: isPreviewing">

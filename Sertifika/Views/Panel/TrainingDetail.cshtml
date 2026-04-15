@@ -120,10 +120,10 @@
                             <!-- /ko -->
                         </td>
                         <td class="text-end text-nowrap">
-                            <!-- ko if: certificateNumber -->
-                            <button class="btn btn-sm btn-outline-info me-1" data-bind="click: $parent.previewParticipant" title="Onizleme">
+                            <button class="btn btn-sm btn-outline-info me-1" data-bind="click: $parent.previewParticipant" title="Sertifika Onizleme">
                                 <i class="bi bi-eye"></i>
                             </button>
+                            <!-- ko if: certificateNumber -->
                             <a class="btn btn-sm btn-outline-success me-1" data-bind="attr: { href: '/api/certificates/download/' + certificateNumber }" target="_blank" title="PDF Indir">
                                 <i class="bi bi-file-pdf"></i>
                             </a>

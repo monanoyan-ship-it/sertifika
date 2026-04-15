@@ -227,14 +227,15 @@ function TrainingDetailViewModel() {
     };
 
     self.previewTemplate = function() {
-        self.openPreview(API_BASE + '/trainings/' + trainingId + '/preview');
+        // Use first participant so the user sees a real name in the preview
+        var first = self.participants()[0];
+        var url = API_BASE + '/trainings/' + trainingId + '/preview';
+        if (first) url += '?participantId=' + first.id;
+        self.openPreview(url);
     };
 
     self.previewParticipant = function(p) {
-        if (!p.certificateNumber) {
-            toastr.info('Bu katilimcinin sertifikasi henuz uretilmedi. Once "Sertifika Uret" butonuna tiklayin.');
-            return;
-        }
+        // Works before generation too - preview is always live-rendered
         self.openPreview(API_BASE + '/trainings/' + trainingId + '/preview?participantId=' + p.id);
     };
 

@@ -3,8 +3,75 @@
 }
 
 <div class="container mt-4" id="settingsApp">
-    <h2 class="mb-4">Ayarlar</h2>
+    <div class="page-header">
+        <div>
+            <h2>Ayarlar</h2>
+            <div class="subtitle">Kullanicilar, OneDrive ve SMTP hesaplari.</div>
+        </div>
+    </div>
 
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item"><a class="nav-link" href="#" data-bind="click: function(){ activeTab('users'); }, css: { active: activeTab() === 'users' }"><i class="bi bi-people me-1"></i>Kullanicilar</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-bind="click: function(){ activeTab('onedrive'); }, css: { active: activeTab() === 'onedrive' }"><i class="bi bi-cloud me-1"></i>OneDrive</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-bind="click: function(){ activeTab('smtp'); }, css: { active: activeTab() === 'smtp' }"><i class="bi bi-envelope me-1"></i>SMTP</a></li>
+    </ul>
+
+    <!-- Users -->
+    <div data-bind="visible: activeTab() === 'users' && isAdmin()">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="bi bi-people me-2"></i>Kullanici & Yetki Yonetimi</h4>
+            <button class="btn btn-primary" data-bind="click: openUserModal">
+                <i class="bi bi-person-plus me-1"></i>Yeni Kullanici
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Ad Soyad</th>
+                        <th>E-posta</th>
+                        <th>Rol</th>
+                        <th>Olusturuldu</th>
+                        <th class="text-end" style="width: 180px;">Islem</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: users">
+                    <tr>
+                        <td data-bind="text: firstName + ' ' + lastName"></td>
+                        <td class="text-muted" data-bind="text: email"></td>
+                        <td>
+                            <span class="badge" data-bind="text: $parent.roleLabel(role),
+                                css: { 'bg-danger': role === 'Admin', 'bg-primary': role === 'CertificateCreator', 'bg-secondary': role === 'Viewer' }"></span>
+                        </td>
+                        <td class="text-muted small" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-sm btn-outline-primary me-1" data-bind="click: $parent.openEditUserModal" title="Duzenle">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-1" data-bind="click: $parent.openPasswordModal" title="Sifre Degistir">
+                                <i class="bi bi-key"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteUser" title="Sil">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div data-bind="visible: users().length === 0" class="empty-state mt-3">
+            <i class="bi bi-people"></i>
+            <div class="title">Kullanici yok</div>
+        </div>
+    </div>
+
+    <div data-bind="visible: activeTab() === 'users' && !isAdmin()" class="alert alert-warning">
+        <i class="bi bi-lock me-1"></i>Bu sayfayi goruntulemek icin Admin yetkisi gerekli.
+    </div>
+
+    <!-- OneDrive Tab -->
+    <div data-bind="visible: activeTab() === 'onedrive'">
     <!-- OneDrive Accounts -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4><i class="bi bi-cloud me-2"></i>OneDrive Hesaplari</h4>
@@ -65,9 +132,11 @@
         <p class="mt-2">Henuz OneDrive hesabi yok.</p>
     </div>
 
-    <hr class="my-4">
+    </div>
+    <!-- /OneDrive tab -->
 
-    <!-- SMTP Accounts -->
+    <!-- SMTP Tab -->
+    <div data-bind="visible: activeTab() === 'smtp'">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4>E-posta (SMTP) Hesaplari</h4>
         <button class="btn btn-primary" data-bind="click: openSmtpCreateModal">
@@ -108,6 +177,94 @@
     <div data-bind="visible: !isLoading() && smtpAccounts().length === 0" class="text-center py-3 text-muted">
         <i class="bi bi-envelope display-4"></i>
         <p class="mt-2">Henuz SMTP hesabi yok.</p>
+    </div>
+    </div>
+    <!-- /SMTP tab -->
+
+    <!-- User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalTitle">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalTitle">
+                        <i class="bi bi-person-plus me-2"></i>
+                        <span data-bind="text: isEditingUser() ? 'Kullanici Duzenle' : 'Yeni Kullanici'"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <form data-bind="submit: saveUser">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="u-first-name">Ad <span class="text-danger">*</span></label>
+                                <input type="text" id="u-first-name" class="form-control" data-bind="textInput: userFirstName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="u-last-name">Soyad <span class="text-danger">*</span></label>
+                                <input type="text" id="u-last-name" class="form-control" data-bind="textInput: userLastName" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="u-email">E-posta <span class="text-danger">*</span></label>
+                                <input type="email" id="u-email" class="form-control" data-bind="textInput: userEmail" required>
+                            </div>
+                            <div class="col-12" data-bind="visible: !isEditingUser()">
+                                <label class="form-label" for="u-password">Sifre <span class="text-danger">*</span></label>
+                                <input type="password" id="u-password" class="form-control" data-bind="textInput: userPassword" minlength="6">
+                                <div class="form-text">En az 6 karakter.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="u-role">Rol <span class="text-danger">*</span></label>
+                                <select id="u-role" class="form-select" data-bind="value: userRole">
+                                    <option value="Admin">Admin - Tam yetki (kullanici yonetimi dahil)</option>
+                                    <option value="CertificateCreator">Operator - Sertifika uretebilir, duzenleyebilir</option>
+                                    <option value="Viewer">Goruntuleyici - Sadece okuma</option>
+                                </select>
+                                <div class="form-text">
+                                    <strong>Admin:</strong> tum ekranlar + kullanici yonetimi.
+                                    <strong>Operator:</strong> sertifika islemleri.
+                                    <strong>Viewer:</strong> sadece goruntuleme.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSavingUser">
+                            <span data-bind="visible: isSavingUser" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="bi bi-check-lg me-1" data-bind="visible: !isSavingUser()"></i>
+                            <span data-bind="text: isEditingUser() ? 'Guncelle' : 'Olustur'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalTitle">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="passwordModalTitle"><i class="bi bi-key me-2"></i>Sifre Degistir</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <form data-bind="submit: savePassword">
+                    <div class="modal-body">
+                        <p class="text-muted small" data-bind="text: 'Kullanici: ' + passwordUserLabel()"></p>
+                        <label class="form-label" for="u-newpass">Yeni Sifre</label>
+                        <input type="password" id="u-newpass" class="form-control" data-bind="textInput: newPassword" minlength="6" required>
+                        <div class="form-text">En az 6 karakter.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-warning" data-bind="disable: isSavingUser">
+                            <span data-bind="visible: isSavingUser" class="spinner-border spinner-border-sm me-1"></span>
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- OneDrive Create Modal -->

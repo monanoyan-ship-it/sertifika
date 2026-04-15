@@ -3,57 +3,105 @@
 }
 
 <div class="container mt-4" id="dashboardApp">
-    <h2 class="mb-4">Dashboard</h2>
+    <div class="page-header">
+        <div>
+            <h2>Dashboard</h2>
+            <div class="subtitle">Hoscaldin. Sertifika operasyonlarinin genel durumu.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-controller="Panel" asp-action="Trainings" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-mortarboard me-1"></i>Egitimler
+            </a>
+            <a asp-controller="Panel" asp-action="Templates" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Yeni Sablon
+            </a>
+        </div>
+    </div>
 
     <div data-bind="visible: isLoading" class="text-center py-5">
         <div class="spinner-border text-primary"></div>
         <p class="mt-2 text-muted">Yukleniyor...</p>
     </div>
 
-    <div class="row g-4" data-bind="visible: !isLoading()">
-        <div class="col-md-3">
-            <a asp-controller="Panel" asp-action="Trainings" class="text-decoration-none">
-                <div class="card text-center shadow-sm dashboard-card h-100">
-                    <div class="card-body">
-                        <i class="bi bi-mortarboard display-4 text-primary"></i>
-                        <h3 class="mt-2" data-bind="text: trainingCount">0</h3>
-                        <p class="text-muted mb-0">Egitimler</p>
+    <div data-bind="visible: !isLoading()">
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-lg-3">
+                <a asp-controller="Panel" asp-action="Trainings" class="stat-card">
+                    <div class="stat-icon bg-brand"><i class="bi bi-mortarboard"></i></div>
+                    <div>
+                        <div class="stat-value" data-bind="text: trainingCount">0</div>
+                        <div class="stat-label">Egitimler</div>
                     </div>
-                </div>
-            </a>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a asp-controller="Panel" asp-action="Templates" class="stat-card">
+                    <div class="stat-icon bg-success"><i class="bi bi-layout-text-window"></i></div>
+                    <div>
+                        <div class="stat-value" data-bind="text: templateCount">0</div>
+                        <div class="stat-label">Sablonlar</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a asp-controller="Panel" asp-action="Signatures" class="stat-card">
+                    <div class="stat-icon bg-warning"><i class="bi bi-pen"></i></div>
+                    <div>
+                        <div class="stat-value" data-bind="text: signatureCount">0</div>
+                        <div class="stat-label">Imzalar</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a asp-controller="Panel" asp-action="Companies" class="stat-card">
+                    <div class="stat-icon bg-info"><i class="bi bi-building"></i></div>
+                    <div>
+                        <div class="stat-value" data-bind="text: companyCount">0</div>
+                        <div class="stat-label">Firmalar</div>
+                    </div>
+                </a>
+            </div>
         </div>
-        <div class="col-md-3">
-            <a asp-controller="Panel" asp-action="Templates" class="text-decoration-none">
-                <div class="card text-center shadow-sm dashboard-card h-100">
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-clock-history me-2"></i>Hizli Baslangic</span>
+                    </div>
                     <div class="card-body">
-                        <i class="bi bi-layout-text-window display-4 text-success"></i>
-                        <h3 class="mt-2" data-bind="text: templateCount">0</h3>
-                        <p class="text-muted mb-0">Sablonlar</p>
+                        <ol class="mb-0 ps-3" style="line-height: 2;">
+                            <li><a asp-controller="Panel" asp-action="Signatures">Imza ekleyin</a> — egitmen imzalarini kutuphaneye yukleyin.</li>
+                            <li><a asp-controller="Panel" asp-action="Templates">Bir sablon tasarlayin</a> — dinamik alanlari (Ad Soyad, Program Adi, Tarih, QR) yerlestirin.</li>
+                            <li><a asp-controller="Panel" asp-action="Trainings">Egitim olusturun</a> — sablon ve firma bilgisini baglayin.</li>
+                            <li>Katilimcilari ekleyin, sertifikalari toplu uretin ve dagitin.</li>
+                        </ol>
                     </div>
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a asp-controller="Panel" asp-action="Signatures" class="text-decoration-none">
-                <div class="card text-center shadow-sm dashboard-card h-100">
+            </div>
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header"><i class="bi bi-info-circle me-2"></i>Durum</div>
                     <div class="card-body">
-                        <i class="bi bi-pen display-4 text-warning"></i>
-                        <h3 class="mt-2" data-bind="text: signatureCount">0</h3>
-                        <p class="text-muted mb-0">Imzalar</p>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="muted-sm">Toplam sablon</span>
+                            <strong data-bind="text: templateCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="muted-sm">Toplam egitim</span>
+                            <strong data-bind="text: trainingCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="muted-sm">Kayitli firma</span>
+                            <strong data-bind="text: companyCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-2">
+                            <span class="muted-sm">Imza sayisi</span>
+                            <strong data-bind="text: signatureCount">0</strong>
+                        </div>
                     </div>
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a asp-controller="Panel" asp-action="Companies" class="text-decoration-none">
-                <div class="card text-center shadow-sm dashboard-card h-100">
-                    <div class="card-body">
-                        <i class="bi bi-building display-4 text-info"></i>
-                        <h3 class="mt-2" data-bind="text: companyCount">0</h3>
-                        <p class="text-muted mb-0">Firmalar</p>
-                    </div>
-                </div>
-            </a>
+            </div>
         </div>
     </div>
 </div>

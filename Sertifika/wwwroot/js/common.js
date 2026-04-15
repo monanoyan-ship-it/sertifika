@@ -9,6 +9,63 @@ toastr.options = {
     timeOut: 4000
 };
 
+// ─── Browser extension console noise filter ───
+// Chrome extensions (ad blockers, password managers, translators) emit
+// "message channel closed" / "runtime.lastError" tracebacks that are not
+// triggered by application code. Suppress them to keep the console readable.
+(function() {
+    var EXT_PATTERNS = [
+        /message channel closed before a response was received/i,
+        /runtime\.lastError/i,
+        /message port closed before a response was received/i,
+        /Extension context invalidated/i
+    ];
+    function isExtensionNoise(msg) {
+        if (msg == null) return false;
+        var text = (typeof msg === 'string') ? msg : (msg.message || String(msg));
+        return EXT_PATTERNS.some(function(rx) { return rx.test(text); });
+    }
+    window.addEventListener('error', function(e) {
+        if (isExtensionNoise(e.message) || isExtensionNoise(e.error)) { e.stopImmediatePropagation(); e.preventDefault(); return false; }
+    }, true);
+    window.addEventListener('unhandledrejection', function(e) {
+        var reason = e.reason;
+        if (isExtensionNoise(reason) || (reason && isExtensionNoise(reason.message))) {
+            e.preventDefault();
+        }
+    });
+    // Wrap console.error to strip extension traces (keep others intact)
+    var origErr = console.error.bind(console);
+    console.error = function() {
+        if (arguments.length && isExtensionNoise(arguments[0])) return;
+        origErr.apply(console, arguments);
+    };
+})();
+
+// ─── Bootstrap modal accessibility: aria-hidden + focus fix ───
+// When a modal closes while a descendant still has focus, Bootstrap logs
+// "Blocked aria-hidden on an element because its descendant retained focus".
+// Fix by (1) blurring any focused element inside before hide, and
+// (2) using `inert` on background instead of aria-hidden on closing modal.
+$(document).on('hide.bs.modal', '.modal', function() {
+    var active = document.activeElement;
+    if (active && this.contains(active) && typeof active.blur === 'function') {
+        active.blur();
+    }
+});
+$(document).on('shown.bs.modal', '.modal', function() {
+    // Mark main app as inert so AT doesn't announce content behind the modal
+    var main = document.querySelector('main');
+    if (main && !main.contains(this)) main.setAttribute('inert', '');
+});
+$(document).on('hidden.bs.modal', '.modal', function() {
+    // If no other modals remain open, remove inert
+    if (!document.querySelector('.modal.show')) {
+        var main = document.querySelector('main');
+        if (main) main.removeAttribute('inert');
+    }
+});
+
 // Current user info (set by page-level script after /auth/me)
 var CURRENT_USER = null;
 
