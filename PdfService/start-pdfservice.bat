@@ -2,6 +2,14 @@
 title Sertifika PDF Servisi
 cd /d %~dp0
 
+rem Zaten calisiyor mu? 5050 portu LISTENING ise sessizce cik.
+netstat -ano | findstr /R /C:"TCP.*127\.0\.0\.1:5050.*LISTENING" >nul
+if %errorlevel%==0 (
+    echo PDF Servisi zaten calisiyor (http://127.0.0.1:5050). Yeni instance baslatilmadi.
+    timeout /t 2 >nul
+    exit /b 0
+)
+
 if not exist venv (
     echo Sanal ortam olusturuluyor...
     python -m venv venv

@@ -21,6 +21,11 @@ public class SecurityHeadersMiddleware
         headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
 
         // CSP: izin verilen kaynaklar lokal (~/lib/...) + blob (PDF preview) + data: (iconlar)
+        // Development: ASP.NET Core BrowserLink + browser-refresh websocket icin ws://localhost ve http://localhost acilir.
+        var connectSrc = _isDevelopment
+            ? "connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://localhost:*"
+            : "connect-src 'self'";
+
         var csp = string.Join("; ", new[]
         {
             "default-src 'self'",
@@ -28,7 +33,7 @@ public class SecurityHeadersMiddleware
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob:",
             "font-src 'self' data:",
-            "connect-src 'self'",
+            connectSrc,
             "frame-src 'self' blob:",
             "object-src 'none'",
             "base-uri 'self'",

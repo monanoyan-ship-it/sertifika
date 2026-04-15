@@ -5,15 +5,22 @@ function SettingsViewModel() {
     self.smtpAccounts = ko.observableArray([]);
     self.isLoading = ko.observable(true);
     self.isSaving = ko.observable(false);
-    self.isTesting = ko.observable(false);
+    self.testingAccountId = ko.observable(0);
 
-    // OneDrive form
+    // ─── OneDrive form ───
+    self.isEditingOd = ko.observable(false);
+    self.editingOdId = null;
     self.formName = ko.observable('');
     self.formTenantId = ko.observable('');
     self.formClientId = ko.observable('');
     self.formClientSecret = ko.observable('');
     self.formDriveUserId = ko.observable('');
+    self.formDriveId = ko.observable('');
+    self.formBasePath = ko.observable('Sertifikalar');
     self.formIsDefault = ko.observable(false);
+    self.formIsEnabled = ko.observable(true);
+    // Setup mod: "easy" (OAuth), "medium" (Tenant + OAuth), "advanced" (tam manuel)
+    self.odSetupMode = ko.observable('easy');
 
     // OAuth state
     self.odTab = ko.observable('easy');
@@ -22,19 +29,43 @@ function SettingsViewModel() {
     self.odDrives = ko.observableArray([]);
     self.odSelectedDrive = ko.observable('');
     self.odRefreshToken = ko.observable('');
+    self.odReconnectId = ko.observable(0); // 0 = create, >0 = reconnect
 
-    // SMTP form
+    // ─── SMTP form ───
+    self.isEditingSmtp = ko.observable(false);
+    self.editingSmtpId = null;
     self.smtpName = ko.observable('');
     self.smtpHost = ko.observable('');
     self.smtpPort = ko.observable(587);
     self.smtpUsername = ko.observable('');
     self.smtpPassword = ko.observable('');
+    self.smtpPasswordHelp = ko.observable('');
     self.smtpFromEmail = ko.observable('');
     self.smtpFromName = ko.observable('');
     self.smtpUseSsl = ko.observable(true);
     self.smtpIsDefault = ko.observable(false);
+    self.smtpIsEnabled = ko.observable(true);
+    // Auth mode: "basic" | "oauth" | "graph"
+    self.smtpAuthMode = ko.observable('basic');
+    self.smtpTenantId = ko.observable('');
+    self.smtpClientId = ko.observable('');
+    self.smtpClientSecret = ko.observable('');
+    self.smtpClientSecretHelp = ko.observable('');
+    self.smtpIsOAuthMode = ko.computed(function() { return self.smtpAuthMode() === 'oauth' || self.smtpAuthMode() === 'graph'; });
+    self.smtpIsGraphMode = ko.computed(function() { return self.smtpAuthMode() === 'graph'; });
+    self.smtpAuthModeLabel = function(mode) {
+        return { basic: 'Basic Auth', oauth: 'SMTP OAuth 2.0', graph: 'Microsoft Graph API' }[mode] || mode;
+    };
+    self.smtpAuthModeBadge = function(mode) {
+        return { basic: 'bg-secondary', oauth: 'bg-primary', graph: 'bg-info' }[mode] || 'bg-secondary';
+    };
 
-    var formModal, smtpModal, userModal, passwordModal;
+    // Send test
+    self.sendTestAccountId = ko.observable(0);
+    self.sendTestEmail = ko.observable('');
+    self.sendTestAccountName = ko.observable('');
+
+    var formModal, smtpModal, userModal, passwordModal, sendTestModal;
 
     // ─── Tabs & user management state ───
     self.activeTab = ko.observable('users');
@@ -59,6 +90,30 @@ function SettingsViewModel() {
         return { Admin: 'Admin', CertificateCreator: 'Operator', Viewer: 'Goruntuleyici' }[role] || role;
     };
 
+    // ─── Formatters ───
+
+    self.formatLastTest = function(account) {
+        if (!account.lastTestedAt) return 'Hic test edilmedi';
+        var d = new Date(account.lastTestedAt);
+        var now = new Date();
+        var diffMs = now - d;
+        var diffMin = Math.floor(diffMs / 60000);
+        var label;
+        if (diffMin < 1) label = 'az once';
+        else if (diffMin < 60) label = diffMin + ' dk once';
+        else if (diffMin < 1440) label = Math.floor(diffMin / 60) + ' saat once';
+        else label = d.toLocaleDateString('tr-TR');
+        var prefix = account.lastTestStatus === 'success' ? 'Son test basarili' : 'Son test hatali';
+        return prefix + ' - ' + label;
+    };
+
+    self.testBadgeClass = function(account) {
+        if (!account.lastTestStatus) return 'bg-secondary';
+        return account.lastTestStatus === 'success' ? 'bg-success' : 'bg-danger';
+    };
+
+    // ─── Load ───
+
     self.loadData = function() {
         self.isLoading(true);
         $.when(
@@ -73,7 +128,6 @@ function SettingsViewModel() {
             self.isLoading(false);
         });
 
-        // Probe /users — 200 means Admin, 403 means not admin (hide section)
         self.loadUsers();
     };
 
@@ -171,21 +225,62 @@ function SettingsViewModel() {
         });
     };
 
-    // ─── OneDrive OAuth Flow ───
+    // ─── OneDrive Create ───
 
     self.openCreateModal = function() {
+        self.isEditingOd(false);
+        self.editingOdId = null;
         self.formName('');
         self.formTenantId('');
         self.formClientId('');
         self.formClientSecret('');
         self.formDriveUserId('');
+        self.formDriveId('');
+        self.formBasePath('Sertifikalar');
         self.formIsDefault(false);
+        self.formIsEnabled(true);
+        self.odSetupMode('easy');
         self.odTab('easy');
         self.odConnected(false);
         self.odDrives([]);
         self.odSelectedDrive('');
         self.odRefreshToken('');
+        self.odReconnectId(0);
         formModal.show();
+    };
+
+    self.openEditOdModal = function(account) {
+        self.isEditingOd(true);
+        self.editingOdId = account.id;
+        self.formName(account.name);
+        self.formTenantId(account.tenantId || '');
+        self.formDriveId(account.driveId || '');
+        self.formDriveUserId(account.driveUserId || '');
+        self.formClientId('');
+        self.formClientSecret('');
+        self.formBasePath(account.basePath || 'Sertifikalar');
+        self.formIsDefault(!!account.isDefault);
+        self.formIsEnabled(account.isEnabled !== false);
+        formModal.show();
+    };
+
+    // ─── Quota helpers ───
+
+    self.formatQuota = function(account) {
+        if (!account.quotaTotalBytes) return null;
+        var used = account.quotaUsedBytes || 0;
+        var total = account.quotaTotalBytes;
+        var pct = Math.round((used / total) * 1000) / 10;
+        var gb = function(b) { return (b / 1073741824).toFixed(2) + ' GB'; };
+        return { used: used, total: total, pct: pct, usedLabel: gb(used), totalLabel: gb(total) };
+    };
+
+    self.quotaBarClass = function(account) {
+        var q = self.formatQuota(account);
+        if (!q) return 'bg-secondary';
+        if (q.pct > 90) return 'bg-danger';
+        if (q.pct > 75) return 'bg-warning';
+        return 'bg-success';
     };
 
     self.startOAuth = function() {
@@ -208,8 +303,7 @@ function SettingsViewModel() {
                 }
             })
             .fail(function(xhr) {
-                var err = xhr.responseJSON;
-                toastr.error(err && err.error ? err.error : 'OAuth baslatma hatasi');
+                toastr.error(extractError(xhr, 'OAuth baslatma hatasi'));
                 self.odAuthLoading(false);
             });
     };
@@ -227,17 +321,13 @@ function SettingsViewModel() {
                     self.odSelectedDrive(res.drives[0].driveId);
                 }
                 self.odConnected(true);
-                toastr.success('Microsoft hesabi baglandi! Drive secin ve kaydedin.');
+                toastr.success('Microsoft hesabi baglandi. Drive secip kaydedin.');
             } else {
                 toastr.error(res.error || 'Token alinamadi');
             }
         })
-        .fail(function() {
-            toastr.error('Token exchange hatasi');
-        })
-        .always(function() {
-            self.odAuthLoading(false);
-        });
+        .fail(function(xhr) { toastr.error(extractError(xhr, 'Token exchange hatasi')); })
+        .always(function() { self.odAuthLoading(false); });
     };
 
     self.reconnect = function() {
@@ -248,40 +338,46 @@ function SettingsViewModel() {
     };
 
     self.saveOAuthAccount = function() {
-        if (!self.formName()) {
-            toastr.warning('Hesap adi girin');
-            return;
-        }
-        if (!self.odSelectedDrive()) {
-            toastr.warning('Drive secin');
-            return;
-        }
+        if (!self.formName()) { toastr.warning('Hesap adi girin'); return; }
+        if (!self.odSelectedDrive()) { toastr.warning('Drive secin'); return; }
+
         self.isSaving(true);
+        // Reconnect akisi: mevcut hesap icin token tazele
+        if (self.odReconnectId() > 0) {
+            apiPost('/onedrive-accounts/oauth/reconnect/' + self.odReconnectId(), {
+                refreshToken: self.odRefreshToken(),
+                driveId: self.odSelectedDrive()
+            })
+            .done(function() {
+                formModal.hide();
+                toastr.success('OneDrive hesabi yeniden baglandi.');
+                self.loadData();
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Yeniden baglanti basarisiz')); })
+            .always(function() { self.isSaving(false); });
+            return;
+        }
+
         apiPost('/onedrive-accounts/oauth/save', {
             name: self.formName(),
             tenantId: self.formTenantId() || null,
             refreshToken: self.odRefreshToken(),
             driveId: self.odSelectedDrive(),
+            basePath: self.formBasePath(),
             isDefault: self.formIsDefault()
         })
         .done(function(res) {
             if (res.success) {
                 formModal.hide();
-                toastr.success('OneDrive hesabi baglandi!');
+                toastr.success('OneDrive hesabi eklendi.');
                 self.loadData();
             } else {
                 toastr.error('Hesap kaydedilemedi');
             }
         })
-        .fail(function() {
-            toastr.error('Hesap kaydedilemedi');
-        })
-        .always(function() {
-            self.isSaving(false);
-        });
+        .fail(function(xhr) { toastr.error(extractError(xhr, 'Hesap kaydedilemedi')); })
+        .always(function() { self.isSaving(false); });
     };
-
-    // ─── OneDrive Manual (Advanced) ───
 
     self.saveAccount = function() {
         self.isSaving(true);
@@ -291,20 +387,40 @@ function SettingsViewModel() {
             clientId: self.formClientId(),
             clientSecret: self.formClientSecret(),
             driveUserId: self.formDriveUserId(),
-            isDefault: self.formIsDefault()
+            driveId: self.formDriveId(),
+            basePath: self.formBasePath(),
+            isDefault: self.formIsDefault(),
+            isEnabled: self.formIsEnabled()
         };
-        apiPost('/onedrive-accounts', body)
+
+        var promise = self.isEditingOd()
+            ? apiPut('/onedrive-accounts/' + self.editingOdId, body)
+            : apiPost('/onedrive-accounts', body);
+
+        promise
             .done(function() {
                 formModal.hide();
-                toastr.success('OneDrive hesabi eklendi');
+                toastr.success(self.isEditingOd() ? 'Hesap guncellendi' : 'OneDrive hesabi eklendi');
                 self.loadData();
             })
-            .fail(function() {
-                toastr.error('Hesap eklenemedi');
-            })
-            .always(function() {
-                self.isSaving(false);
-            });
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Islem basarisiz')); })
+            .always(function() { self.isSaving(false); });
+    };
+
+    self.openReconnectModal = function(account) {
+        self.isEditingOd(false);
+        self.editingOdId = null;
+        self.formName(account.name);
+        self.formTenantId(account.tenantId || '');
+        self.formIsDefault(!!account.isDefault);
+        self.formIsEnabled(true);
+        self.odTab('easy');
+        self.odConnected(false);
+        self.odDrives([]);
+        self.odSelectedDrive('');
+        self.odRefreshToken('');
+        self.odReconnectId(account.id);
+        formModal.show();
     };
 
     self.setDefault = function(account) {
@@ -313,79 +429,132 @@ function SettingsViewModel() {
                 toastr.success('Varsayilan hesap ayarlandi');
                 self.loadData();
             })
-            .fail(function() { toastr.error('Islem basarisiz'); });
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Islem basarisiz')); });
+    };
+
+    self.toggleOdEnabled = function(account) {
+        apiPost('/onedrive-accounts/' + account.id + '/toggle-enabled', { enabled: !account.isEnabled })
+            .done(function() {
+                toastr.success(account.isEnabled ? 'Hesap devre disi birakildi' : 'Hesap etkinlestirildi');
+                self.loadData();
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Islem basarisiz')); });
+    };
+
+    self.testOdAccount = function(account) {
+        self.testingAccountId(account.id);
+        apiPost('/onedrive-accounts/' + account.id + '/test-connection')
+            .done(function(res) {
+                if (res.success) toastr.success('Baglanti basarili: ' + account.name);
+                else toastr.error('Baglanti hatasi: ' + (res.error || 'Bilinmeyen'));
+                self.loadData();
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Test basarisiz')); })
+            .always(function() { self.testingAccountId(0); });
     };
 
     self.deleteAccount = function(account) {
-        showConfirm('OneDrive hesabini silmek istiyor musunuz?').then(function(ok) {
+        showConfirm('"' + account.name + '" OneDrive hesabini silmek istiyor musunuz?').then(function(ok) {
             if (!ok) return;
             apiDelete('/onedrive-accounts/' + account.id)
                 .done(function() {
                     toastr.success('Hesap silindi');
                     self.loadData();
                 })
-                .fail(function() { toastr.error('Silinemedi'); });
+                .fail(function(xhr) { toastr.error(extractError(xhr, 'Silinemedi')); });
         });
-    };
-
-    self.testConnection = function() {
-        self.isTesting(true);
-        apiPost('/onedrive-accounts/test-connection')
-            .done(function(res) {
-                if (res.success) {
-                    toastr.success('OneDrive baglantisi basarili!');
-                } else {
-                    toastr.error('Baglanti hatasi: ' + (res.error || 'Bilinmeyen hata'));
-                }
-            })
-            .fail(function() {
-                toastr.error('Baglanti testi basarisiz');
-            })
-            .always(function() {
-                self.isTesting(false);
-            });
     };
 
     // ─── SMTP CRUD ───
 
     self.openSmtpCreateModal = function() {
+        self.isEditingSmtp(false);
+        self.editingSmtpId = null;
         self.smtpName('');
         self.smtpHost('');
         self.smtpPort(587);
         self.smtpUsername('');
         self.smtpPassword('');
+        self.smtpPasswordHelp('');
         self.smtpFromEmail('');
         self.smtpFromName('');
         self.smtpUseSsl(true);
         self.smtpIsDefault(false);
+        self.smtpIsEnabled(true);
+        self.smtpAuthMode('basic');
+        self.smtpTenantId('');
+        self.smtpClientId('');
+        self.smtpClientSecret('');
+        self.smtpClientSecretHelp('');
+        smtpModal.show();
+    };
+
+    self.openSmtpEditModal = function(account) {
+        self.isEditingSmtp(true);
+        self.editingSmtpId = account.id;
+        self.smtpName(account.name);
+        self.smtpHost(account.host);
+        self.smtpPort(account.port);
+        self.smtpUsername(account.username);
+        self.smtpPassword('');
+        self.smtpPasswordHelp(account.hasPassword ? 'Mevcut sifre saklaniyor. Degistirmek icin yeni sifre girin.' : 'Sifre girmeniz gerekiyor.');
+        self.smtpFromEmail(account.fromEmail);
+        self.smtpFromName(account.fromName || '');
+        self.smtpUseSsl(!!account.useSsl);
+        self.smtpIsDefault(!!account.isDefault);
+        self.smtpIsEnabled(account.isEnabled !== false);
+        self.smtpAuthMode(account.authMode || (account.useGraphApi ? 'graph' : (account.useOAuth ? 'oauth' : 'basic')));
+        self.smtpTenantId(account.tenantId || '');
+        self.smtpClientId(account.clientId || '');
+        self.smtpClientSecret('');
+        self.smtpClientSecretHelp(account.hasClientSecret ? 'Mevcut client secret saklaniyor. Degistirmek icin yeni deger girin.' : 'Client secret girmeniz gerekiyor.');
         smtpModal.show();
     };
 
     self.saveSmtpAccount = function() {
+        var mode = self.smtpAuthMode();
+        if (mode === 'oauth' || mode === 'graph') {
+            if (!self.smtpTenantId() || !self.smtpClientId()) {
+                toastr.warning('Tenant ID ve Client ID zorunlu');
+                return;
+            }
+            if (!self.isEditingSmtp() && !self.smtpClientSecret()) {
+                toastr.warning('Client Secret girin');
+                return;
+            }
+        }
+
         self.isSaving(true);
         var body = {
             name: self.smtpName(),
             host: self.smtpHost(),
-            port: self.smtpPort(),
+            port: parseInt(self.smtpPort(), 10) || 587,
             username: self.smtpUsername(),
-            password: self.smtpPassword(),
+            password: self.smtpPassword() || null,
             fromEmail: self.smtpFromEmail(),
-            fromName: self.smtpFromName(),
+            fromName: self.smtpFromName() || null,
             useSsl: self.smtpUseSsl(),
-            isDefault: self.smtpIsDefault()
+            useOAuth: mode === 'oauth' || mode === 'graph',
+            useGraphApi: mode === 'graph',
+            tenantId: self.smtpTenantId() || null,
+            clientId: self.smtpClientId() || null,
+            clientSecret: self.smtpClientSecret() || null,
+            isDefault: self.smtpIsDefault(),
+            isEnabled: self.smtpIsEnabled()
         };
-        apiPost('/smtp-accounts', body)
+
+        var promise = self.isEditingSmtp()
+            ? apiPut('/smtp-accounts/' + self.editingSmtpId, body)
+            : apiPost('/smtp-accounts', body);
+
+        promise
             .done(function() {
                 smtpModal.hide();
-                toastr.success('SMTP hesabi eklendi');
+                toastr.success(self.isEditingSmtp() ? 'SMTP hesabi guncellendi' : 'SMTP hesabi eklendi');
                 self.loadData();
             })
-            .fail(function() {
-                toastr.error('SMTP hesabi eklenemedi');
-            })
-            .always(function() {
-                self.isSaving(false);
-            });
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Islem basarisiz')); })
+            .always(function() { self.isSaving(false); });
     };
 
     self.setSmtpDefault = function(account) {
@@ -394,18 +563,64 @@ function SettingsViewModel() {
                 toastr.success('Varsayilan SMTP hesabi ayarlandi');
                 self.loadData();
             })
-            .fail(function() { toastr.error('Islem basarisiz'); });
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Islem basarisiz')); });
+    };
+
+    self.toggleSmtpEnabled = function(account) {
+        apiPost('/smtp-accounts/' + account.id + '/toggle-enabled', { enabled: !account.isEnabled })
+            .done(function() {
+                toastr.success(account.isEnabled ? 'Hesap devre disi birakildi' : 'Hesap etkinlestirildi');
+                self.loadData();
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Islem basarisiz')); });
+    };
+
+    self.testSmtpAccount = function(account) {
+        self.testingAccountId(account.id);
+        apiPost('/smtp-accounts/' + account.id + '/test-connection')
+            .done(function(res) {
+                if (res.success) toastr.success('Baglanti + kimlik dogrulama basarili: ' + account.name);
+                else toastr.error('Baglanti hatasi: ' + (res.error || 'Bilinmeyen'));
+                self.loadData();
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Test basarisiz')); })
+            .always(function() { self.testingAccountId(0); });
+    };
+
+    self.openSendTestModal = function(account) {
+        self.sendTestAccountId(account.id);
+        self.sendTestAccountName(account.name);
+        self.sendTestEmail('');
+        sendTestModal.show();
+    };
+
+    self.sendTest = function() {
+        var to = (self.sendTestEmail() || '').trim();
+        if (!to) { toastr.warning('Hedef e-posta girin'); return; }
+        self.isSaving(true);
+        apiPost('/smtp-accounts/' + self.sendTestAccountId() + '/send-test', { toEmail: to })
+            .done(function(res) {
+                if (res.success) {
+                    sendTestModal.hide();
+                    toastr.success('Test maili gonderildi: ' + to);
+                    self.loadData();
+                } else {
+                    toastr.error('Gonderilemedi: ' + (res.error || 'Bilinmeyen'));
+                }
+            })
+            .fail(function(xhr) { toastr.error(extractError(xhr, 'Gonderim basarisiz')); })
+            .always(function() { self.isSaving(false); });
     };
 
     self.deleteSmtpAccount = function(account) {
-        showConfirm('SMTP hesabini silmek istiyor musunuz?').then(function(ok) {
+        showConfirm('"' + account.name + '" SMTP hesabini silmek istiyor musunuz?').then(function(ok) {
             if (!ok) return;
             apiDelete('/smtp-accounts/' + account.id)
                 .done(function() {
                     toastr.success('SMTP hesabi silindi');
                     self.loadData();
                 })
-                .fail(function() { toastr.error('Silinemedi'); });
+                .fail(function(xhr) { toastr.error(extractError(xhr, 'Silinemedi')); });
         });
     };
 
@@ -414,6 +629,7 @@ function SettingsViewModel() {
         smtpModal = new bootstrap.Modal(document.getElementById('smtpModal'));
         userModal = new bootstrap.Modal(document.getElementById('userModal'));
         passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        sendTestModal = new bootstrap.Modal(document.getElementById('sendTestModal'));
         self.loadData();
     });
 }

@@ -32,19 +32,7 @@ public class OneDriveAccountsController : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetAccounts()
     {
         var accounts = await _crud.GetAccountsAsync();
-        var masked = accounts.Select(a => new
-        {
-            a.Id,
-            a.Name,
-            a.TenantId,
-            a.DriveId,
-            a.IsDefault,
-            a.IsActive,
-            a.CreatedAt,
-            HasRefreshToken = !string.IsNullOrEmpty(a.RefreshToken),
-            HasClientSecret = !string.IsNullOrEmpty(a.ClientSecret)
-        });
-        return Ok(masked);
+        return Ok(accounts.Select(ToMasked));
     }
 
     [HttpGet("{id}")]
@@ -52,34 +40,48 @@ public class OneDriveAccountsController : ControllerBase
     {
         var a = await _crud.GetAccountAsync(id);
         if (a == null) return NotFound();
-        return Ok(new
-        {
-            a.Id,
-            a.Name,
-            a.TenantId,
-            a.ClientId,
-            a.DriveId,
-            a.DriveUserId,
-            a.IsDefault,
-            a.IsActive,
-            a.CreatedAt,
-            HasRefreshToken = !string.IsNullOrEmpty(a.RefreshToken),
-            HasClientSecret = !string.IsNullOrEmpty(a.ClientSecret)
-        });
+        return Ok(ToMasked(a));
     }
 
     [HttpPost]
-    public async Task<ActionResult<OneDriveAccount>> CreateAccount([FromBody] OneDriveAccount account)
+    public async Task<ActionResult<object>> CreateAccount([FromBody] OneDriveAccountUpsertRequest req)
     {
-        var created = await _crud.CreateAccountAsync(account);
-        return CreatedAtAction(nameof(GetAccount), new { id = created.Id }, created);
+        var created = await _crud.CreateAccountAsync(new OneDriveAccount
+        {
+            Name = req.Name,
+            TenantId = req.TenantId ?? "common",
+            ClientId = req.ClientId ?? "",
+            ClientSecret = req.ClientSecret ?? "",
+            DriveUserId = req.DriveUserId ?? "",
+            DriveId = req.DriveId ?? "",
+            BasePath = req.BasePath ?? "Sertifikalar",
+            IsDefault = req.IsDefault,
+            IsEnabled = req.IsEnabled
+        });
+        return CreatedAtAction(nameof(GetAccount), new { id = created.Id }, ToMasked(created));
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAccount(int id, [FromBody] OneDriveAccount account)
+    public async Task<IActionResult> UpdateAccount(int id, [FromBody] OneDriveAccountUpsertRequest req)
     {
-        if (id != account.Id) return BadRequest();
-        await _crud.UpdateAccountAsync(account);
+        var existing = await _crud.GetAccountAsync(id);
+        if (existing == null) return NotFound();
+
+        var isOAuth = !string.IsNullOrEmpty(existing.RefreshToken);
+
+        await _crud.UpdateAccountAsync(new OneDriveAccount
+        {
+            Id = id,
+            Name = req.Name,
+            TenantId = req.TenantId ?? "common",
+            ClientId = req.ClientId ?? "",
+            ClientSecret = req.ClientSecret ?? "",
+            DriveUserId = req.DriveUserId ?? "",
+            DriveId = req.DriveId ?? "",
+            BasePath = req.BasePath ?? "Sertifikalar",
+            IsDefault = req.IsDefault,
+            IsEnabled = req.IsEnabled
+        }, updateSecret: !isOAuth);
         return NoContent();
     }
 
@@ -88,6 +90,29 @@ public class OneDriveAccountsController : ControllerBase
     {
         await _crud.SetDefaultAsync(id);
         return Ok(new { message = "Varsayilan hesap ayarlandi." });
+    }
+
+    [HttpPost("{id}/toggle-enabled")]
+    public async Task<IActionResult> ToggleEnabled(int id, [FromBody] ToggleEnabledRequest req)
+    {
+        await _crud.SetEnabledAsync(id, req.Enabled);
+        return NoContent();
+    }
+
+    [HttpPost("{id}/test-connection")]
+    public async Task<ActionResult<object>> TestAccount(int id)
+    {
+        var result = await _oneDriveService.TestAccountAsync(id);
+        await _crud.RecordTestResultAsync(id, result.Success, result.Error, result.QuotaTotalBytes, result.QuotaUsedBytes);
+        return Ok(new
+        {
+            success = result.Success,
+            error = result.Error,
+            quotaTotal = result.QuotaTotalBytes,
+            quotaUsed = result.QuotaUsedBytes,
+            driveType = result.DriveType,
+            ownerName = result.OwnerName
+        });
     }
 
     [HttpDelete("{id}")]
@@ -156,10 +181,11 @@ public class OneDriveAccountsController : ControllerBase
         {
             Name = dto.Name,
             TenantId = dto.TenantId ?? "common",
-            ClientId = "", // OAuth flow'da appsettings'ten gelir
-            ClientSecret = "", // OAuth flow'da appsettings'ten gelir
+            ClientId = "",
+            ClientSecret = "",
             RefreshToken = dto.RefreshToken,
             DriveId = dto.DriveId,
+            BasePath = string.IsNullOrWhiteSpace(dto.BasePath) ? "Sertifikalar" : dto.BasePath,
             IsDefault = dto.IsDefault
         };
 
@@ -167,12 +193,56 @@ public class OneDriveAccountsController : ControllerBase
         return Ok(new { success = true, id = created.Id });
     }
 
+    [HttpPost("oauth/reconnect/{id}")]
+    public async Task<ActionResult> Reconnect(int id, [FromBody] OneDriveReconnectDto dto)
+    {
+        var existing = await _crud.GetAccountAsync(id);
+        if (existing == null) return NotFound();
+
+        await _crud.UpdateOAuthTokensAsync(id, dto.RefreshToken, dto.DriveId);
+        return Ok(new { success = true });
+    }
+
     [HttpPost("test-connection")]
-    public async Task<ActionResult> TestConnection()
+    public async Task<ActionResult> TestDefault()
     {
         var (success, error) = await _oneDriveService.TestConnectionAsync();
         return Ok(new { success, error });
     }
+
+    private static object ToMasked(OneDriveAccount a) => new
+    {
+        a.Id,
+        a.Name,
+        a.TenantId,
+        a.DriveId,
+        a.DriveUserId,
+        a.BasePath,
+        a.IsDefault,
+        a.IsEnabled,
+        a.LastTestedAt,
+        a.LastTestStatus,
+        a.LastTestError,
+        a.QuotaTotalBytes,
+        a.QuotaUsedBytes,
+        a.QuotaCheckedAt,
+        a.CreatedAt,
+        HasRefreshToken = !string.IsNullOrEmpty(a.RefreshToken),
+        HasClientSecret = !string.IsNullOrEmpty(a.ClientSecret)
+    };
+}
+
+public class OneDriveAccountUpsertRequest
+{
+    public string Name { get; set; } = "";
+    public string? TenantId { get; set; }
+    public string? ClientId { get; set; }
+    public string? ClientSecret { get; set; }
+    public string? DriveUserId { get; set; }
+    public string? DriveId { get; set; }
+    public string? BasePath { get; set; }
+    public bool IsDefault { get; set; }
+    public bool IsEnabled { get; set; } = true;
 }
 
 public class OneDriveExchangeCodeDto
@@ -187,5 +257,12 @@ public class OneDriveOAuthSaveDto
     public string? TenantId { get; set; }
     public string RefreshToken { get; set; } = "";
     public string DriveId { get; set; } = "";
+    public string? BasePath { get; set; }
     public bool IsDefault { get; set; }
+}
+
+public class OneDriveReconnectDto
+{
+    public string RefreshToken { get; set; } = "";
+    public string DriveId { get; set; } = "";
 }

@@ -15,7 +15,12 @@ builder.Services.AddApplicationServices();
 // JWT Service
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// Security / encryption
+builder.Services.AddSingleton<EncryptionService>();
+
 // Email Service
+builder.Services.AddHttpClient("GraphMail");
+builder.Services.AddScoped<SmtpMailDispatcher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // OneDrive Services

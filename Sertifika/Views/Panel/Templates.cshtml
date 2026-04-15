@@ -74,14 +74,14 @@
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="templatePreviewTitle"><i class="bi bi-file-earmark-pdf me-2"></i><span data-bind="text: previewTemplateName"></span></h5>
+                    <h5 class="modal-title" id="templatePreviewTitle"><i class="bi bi-file-earmark-pdf me-2"></i><span data-bind="text: $root.previewTemplateName"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
                 </div>
                 <div class="modal-body p-0" style="height: 78vh; background: #f1f5f9;">
-                    <div data-bind="visible: isPreviewLoading" class="d-flex align-items-center justify-content-center h-100">
+                    <div data-bind="visible: $root.isPreviewLoading" class="d-flex align-items-center justify-content-center h-100">
                         <div class="spinner-border text-primary"></div>
                     </div>
-                    <iframe data-bind="attr: { src: previewSrc }, visible: !isPreviewLoading() && previewSrc()"
+                    <iframe data-bind="attr: { src: $root.previewSrc }, visible: !$root.isPreviewLoading() && $root.previewSrc()"
                             style="width:100%; height:100%; border:none;" title="Sablon onizleme"></iframe>
                 </div>
             </div>

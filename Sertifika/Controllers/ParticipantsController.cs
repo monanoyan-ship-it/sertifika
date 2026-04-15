@@ -35,11 +35,16 @@ public class ParticipantsController : ControllerBase
     [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<ActionResult<Participant>> CreateParticipant(int trainingId, [FromBody] ParticipantUpsertRequest request)
     {
+        var first = (request.FirstName ?? string.Empty).Trim();
+        var last = (request.LastName ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(first) || string.IsNullOrEmpty(last))
+            return BadRequest(new { error = "Ad ve soyad zorunludur." });
+
         var participant = new Participant
         {
             TrainingId = trainingId,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+            FirstName = first,
+            LastName = last,
             Email = request.Email,
             CompanyName = request.CompanyName
         };
@@ -74,12 +79,17 @@ public class ParticipantsController : ControllerBase
     [Authorize(Roles = "Admin,CertificateCreator")]
     public async Task<IActionResult> UpdateParticipant(int trainingId, int id, [FromBody] ParticipantUpsertRequest request)
     {
+        var first = (request.FirstName ?? string.Empty).Trim();
+        var last = (request.LastName ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(first) || string.IsNullOrEmpty(last))
+            return BadRequest(new { error = "Ad ve soyad zorunludur." });
+
         var participant = new Participant
         {
             Id = id,
             TrainingId = trainingId,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+            FirstName = first,
+            LastName = last,
             Email = request.Email,
             CompanyName = request.CompanyName
         };

@@ -1,31 +1,37 @@
-using System.Net;
-using System.Net.Mail;
+using Sertifika.Entities;
 using Sertifika.EntityServices;
 
 namespace Sertifika.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _configuration;
     private readonly ISmtpAccountEntityService _smtpAccountService;
     private readonly IEmailTemplateEntityService _emailTemplateService;
+    private readonly SmtpMailDispatcher _dispatcher;
 
-    public EmailService(IConfiguration configuration, ISmtpAccountEntityService smtpAccountService, IEmailTemplateEntityService emailTemplateService)
+    public EmailService(
+        ISmtpAccountEntityService smtpAccountService,
+        IEmailTemplateEntityService emailTemplateService,
+        SmtpMailDispatcher dispatcher)
     {
-        _configuration = configuration;
         _smtpAccountService = smtpAccountService;
         _emailTemplateService = emailTemplateService;
+        _dispatcher = dispatcher;
     }
 
     public async Task SendCertificateEmailAsync(string toEmail, string recipientName, string trainingName,
         byte[] pdfBytes, string pdfFilename, string? companyName = null, string? certificateNo = null)
     {
-        var smtp = await GetSmtpSettingsAsync();
+        var account = await _smtpAccountService.GetDefaultAccountAsync()
+            ?? throw new InvalidOperationException("Varsayilan SMTP hesabi yok. Ayarlar > SMTP uzerinden bir hesap ekleyin ve varsayilan isaretleyin.");
+
+        if (!account.IsEnabled)
+            throw new InvalidOperationException($"'{account.Name}' SMTP hesabi devre disi.");
+
         var template = await _emailTemplateService.GetDefaultTemplateAsync();
 
         string subject;
         string body;
-
         if (template != null)
         {
             subject = ReplacePlaceholders(template.Subject, recipientName, trainingName, companyName, certificateNo);
@@ -44,29 +50,21 @@ public class EmailService : IEmailService
                 """;
         }
 
-        using var client = new SmtpClient(smtp.Host, smtp.Port)
+        var message = new EmailMessage
         {
-            Credentials = new NetworkCredential(smtp.Username, smtp.Password),
-            EnableSsl = smtp.UseSsl
-        };
-
-        using var message = new MailMessage
-        {
-            From = new MailAddress(smtp.FromEmail, smtp.FromName ?? "Sertifika Sistemi"),
+            ToEmail = toEmail,
+            ToName = recipientName,
             Subject = subject,
-            IsBodyHtml = true,
-            Body = body
+            HtmlBody = body,
+            Attachments = pdfBytes.Length > 0
+                ? new List<EmailAttachment>
+                {
+                    new() { Filename = pdfFilename, ContentType = "application/pdf", Bytes = pdfBytes }
+                }
+                : new List<EmailAttachment>()
         };
 
-        message.To.Add(new MailAddress(toEmail, recipientName));
-
-        if (pdfBytes.Length > 0)
-        {
-            var stream = new MemoryStream(pdfBytes);
-            message.Attachments.Add(new Attachment(stream, pdfFilename, "application/pdf"));
-        }
-
-        await client.SendMailAsync(message);
+        await _dispatcher.SendAsync(account, message);
     }
 
     public async Task<EmailBatchResult> SendBatchAsync(List<EmailRecipient> recipients, string trainingName, string? companyName = null)
@@ -91,37 +89,6 @@ public class EmailService : IEmailService
         return result;
     }
 
-    private async Task<SmtpSettings> GetSmtpSettingsAsync()
-    {
-        var dbAccount = await _smtpAccountService.GetDefaultAccountAsync();
-        if (dbAccount != null)
-        {
-            return new SmtpSettings
-            {
-                Host = dbAccount.Host,
-                Port = dbAccount.Port,
-                Username = dbAccount.Username,
-                Password = dbAccount.Password,
-                FromEmail = dbAccount.FromEmail,
-                FromName = dbAccount.FromName,
-                UseSsl = dbAccount.UseSsl
-            };
-        }
-
-        // Fallback to appsettings.json
-        var config = _configuration.GetSection("Smtp");
-        return new SmtpSettings
-        {
-            Host = config["Host"] ?? "localhost",
-            Port = int.Parse(config["Port"] ?? "587"),
-            Username = config["Username"] ?? "",
-            Password = config["Password"] ?? "",
-            FromEmail = config["From"] ?? "noreply@example.com",
-            FromName = config["FromName"],
-            UseSsl = bool.Parse(config["EnableSsl"] ?? "true")
-        };
-    }
-
     private static string ReplacePlaceholders(string text, string recipientName, string trainingName, string? companyName, string? certificateNo)
     {
         return text
@@ -130,16 +97,5 @@ public class EmailService : IEmailService
             .Replace("{TrainingDate}", DateTime.Now.ToString("dd.MM.yyyy"))
             .Replace("{CompanyName}", companyName ?? "")
             .Replace("{CertificateNo}", certificateNo ?? "");
-    }
-
-    private class SmtpSettings
-    {
-        public string Host { get; set; } = string.Empty;
-        public int Port { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-        public string FromEmail { get; set; } = string.Empty;
-        public string? FromName { get; set; }
-        public bool UseSsl { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Sertifika.Context;
@@ -11,9 +12,11 @@ using Sertifika.Context;
 namespace Sertifika.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415190703_AddEnabledAndLastTestFieldsToAccounts")]
+    partial class AddEnabledAndLastTestFieldsToAccounts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -515,12 +518,6 @@ namespace Sertifika.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ClientId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ClientSecret")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -564,17 +561,8 @@ namespace Sertifika.Migrations
                     b.Property<int>("Port")
                         .HasColumnType("integer");
 
-                    b.Property<string>("TenantId")
-                        .HasColumnType("text");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("UseGraphApi")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("UseOAuth")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("UseSsl")
                         .HasColumnType("boolean");

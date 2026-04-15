@@ -72,114 +72,167 @@
 
     <!-- OneDrive Tab -->
     <div data-bind="visible: activeTab() === 'onedrive'">
-    <!-- OneDrive Accounts -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4><i class="bi bi-cloud me-2"></i>OneDrive Hesaplari</h4>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm" data-bind="click: testConnection, disable: isTesting">
-                <span data-bind="visible: isTesting" class="spinner-border spinner-border-sm me-1"></span>
-                <i class="bi bi-plug me-1" data-bind="visible: !isTesting()"></i>Baglanti Test
-            </button>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="bi bi-cloud me-2"></i>OneDrive Hesaplari</h4>
             <button class="btn btn-primary" data-bind="click: openCreateModal">
-                <i class="bi bi-plus-circle me-1"></i> Yeni Hesap
+                <i class="bi bi-plus-circle me-1"></i>Yeni Hesap
             </button>
         </div>
-    </div>
 
-    <div data-bind="visible: isLoading" class="text-center py-5">
-        <div class="spinner-border text-primary"></div>
-    </div>
+        <div data-bind="visible: isLoading" class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+        </div>
 
-    <div class="row g-3" data-bind="foreach: accounts, visible: !isLoading()">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title" data-bind="text: name"></h5>
-                        <div class="d-flex gap-1">
-                            <!-- ko if: hasRefreshToken -->
-                            <span class="badge bg-primary">OAuth</span>
-                            <!-- /ko -->
-                            <!-- ko if: isDefault -->
-                            <span class="badge bg-success">Varsayilan</span>
+        <div class="row g-3" data-bind="foreach: accounts, visible: !isLoading()">
+            <div class="col-md-6">
+                <div class="card h-100" data-bind="css: { 'opacity-75': !isEnabled }">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0" data-bind="text: name"></h5>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <!-- ko if: hasRefreshToken --><span class="badge bg-primary">OAuth</span><!-- /ko -->
+                                <!-- ko ifnot: hasRefreshToken --><span class="badge bg-secondary">Manuel</span><!-- /ko -->
+                                <!-- ko if: isDefault --><span class="badge bg-success">Varsayilan</span><!-- /ko -->
+                                <!-- ko ifnot: isEnabled --><span class="badge bg-warning text-dark">Pasif</span><!-- /ko -->
+                            </div>
+                        </div>
+                        <p class="mb-1 small"><strong>Tenant:</strong> <code data-bind="text: tenantId || 'common'"></code></p>
+                        <p class="mb-1 small"><strong>Kok Klasor:</strong> <code data-bind="text: basePath || 'Sertifikalar'"></code></p>
+                        <!-- ko if: driveId -->
+                        <p class="mb-1 small"><strong>Drive ID:</strong> <code class="text-break" data-bind="text: driveId"></code></p>
+                        <!-- /ko -->
+                        <!-- ko if: !driveId && driveUserId -->
+                        <p class="mb-1 small"><strong>Drive User:</strong> <code data-bind="text: driveUserId"></code></p>
+                        <!-- /ko -->
+
+                        <!-- ko with: $parent.formatQuota($data) -->
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span><strong>Depolama:</strong> <span data-bind="text: usedLabel + ' / ' + totalLabel"></span></span>
+                                <span class="text-muted" data-bind="text: pct + '%'"></span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar" role="progressbar"
+                                     data-bind="style: { width: pct + '%' }, css: $parents[1].quotaBarClass($parent)"></div>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+
+                        <div class="mt-2">
+                            <span class="badge small" data-bind="text: $parent.formatLastTest($data), css: $parent.testBadgeClass($data)"></span>
+                            <!-- ko if: lastTestError -->
+                            <div class="text-danger small mt-1" style="word-break: break-word;" data-bind="text: lastTestError"></div>
                             <!-- /ko -->
                         </div>
                     </div>
-                    <p class="mb-1 small"><strong>Tenant:</strong> <code data-bind="text: tenantId || 'common'"></code></p>
-                    <!-- ko if: driveId -->
-                    <p class="mb-0 small"><strong>Drive ID:</strong> <code data-bind="text: driveId"></code></p>
-                    <!-- /ko -->
-                    <!-- ko if: !driveId && driveUserId -->
-                    <p class="mb-0 small"><strong>Drive User:</strong> <code data-bind="text: driveUserId"></code></p>
-                    <!-- /ko -->
-                </div>
-                <div class="card-footer bg-transparent d-flex gap-2 justify-content-end">
-                    <!-- ko ifnot: isDefault -->
-                    <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.setDefault">
-                        <i class="bi bi-check-circle me-1"></i>Varsayilan Yap
-                    </button>
-                    <!-- /ko -->
-                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteAccount">
-                        <i class="bi bi-trash me-1"></i>Sil
-                    </button>
+                    <div class="card-footer bg-transparent d-flex flex-wrap gap-1 justify-content-end">
+                        <button class="btn btn-sm btn-outline-info" data-bind="click: $parent.testOdAccount, disable: $parent.testingAccountId() === id">
+                            <!-- ko if: $parent.testingAccountId() === id --><span class="spinner-border spinner-border-sm"></span><!-- /ko -->
+                            <!-- ko ifnot: $parent.testingAccountId() === id --><i class="bi bi-plug"></i> Test<!-- /ko -->
+                        </button>
+                        <!-- ko if: hasRefreshToken -->
+                        <button class="btn btn-sm btn-outline-warning" data-bind="click: $parent.openReconnectModal" title="Microsoft ile yeniden baglan">
+                            <i class="bi bi-arrow-clockwise"></i> Yeniden Baglan
+                        </button>
+                        <!-- /ko -->
+                        <button class="btn btn-sm btn-outline-primary" data-bind="click: $parent.openEditOdModal">
+                            <i class="bi bi-pencil"></i> Duzenle
+                        </button>
+                        <button class="btn btn-sm" data-bind="click: $parent.toggleOdEnabled, css: { 'btn-outline-secondary': isEnabled, 'btn-outline-success': !isEnabled }">
+                            <!-- ko if: isEnabled --><i class="bi bi-pause"></i> Pasifle<!-- /ko -->
+                            <!-- ko ifnot: isEnabled --><i class="bi bi-play"></i> Aktifle<!-- /ko -->
+                        </button>
+                        <!-- ko ifnot: isDefault -->
+                        <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.setDefault" data-bind-disable-default="true">
+                            <i class="bi bi-check-circle"></i> Varsayilan Yap
+                        </button>
+                        <!-- /ko -->
+                        <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteAccount">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div data-bind="visible: !isLoading() && accounts().length === 0" class="text-center py-3 text-muted">
-        <i class="bi bi-cloud display-4"></i>
-        <p class="mt-2">Henuz OneDrive hesabi yok.</p>
+        <div data-bind="visible: !isLoading() && accounts().length === 0" class="empty-state mt-3">
+            <i class="bi bi-cloud"></i>
+            <div class="title mt-2">Henuz OneDrive hesabi yok</div>
+            <p class="mb-0">Microsoft ile baglanarak sertifikalarinizi OneDrive'a arsivleyebilirsiniz.</p>
+        </div>
     </div>
-
-    </div>
-    <!-- /OneDrive tab -->
 
     <!-- SMTP Tab -->
     <div data-bind="visible: activeTab() === 'smtp'">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>E-posta (SMTP) Hesaplari</h4>
-        <button class="btn btn-primary" data-bind="click: openSmtpCreateModal">
-            <i class="bi bi-plus-circle me-1"></i> Yeni SMTP Hesabi
-        </button>
-    </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="bi bi-envelope me-2"></i>E-posta (SMTP) Hesaplari</h4>
+            <button class="btn btn-primary" data-bind="click: openSmtpCreateModal">
+                <i class="bi bi-plus-circle me-1"></i>Yeni SMTP Hesabi
+            </button>
+        </div>
 
-    <div class="row g-3" data-bind="foreach: smtpAccounts, visible: !isLoading()">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title" data-bind="text: name"></h5>
-                        <!-- ko if: isDefault -->
-                        <span class="badge bg-success">Varsayilan</span>
+        <div class="row g-3" data-bind="foreach: smtpAccounts, visible: !isLoading()">
+            <div class="col-md-6">
+                <div class="card h-100" data-bind="css: { 'opacity-75': !isEnabled }">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0" data-bind="text: name"></h5>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <span class="badge" data-bind="text: $parent.smtpAuthModeLabel(authMode), css: $parent.smtpAuthModeBadge(authMode)"></span>
+                                <!-- ko if: useSsl --><span class="badge bg-info">SSL/TLS</span><!-- /ko -->
+                                <!-- ko if: isDefault --><span class="badge bg-success">Varsayilan</span><!-- /ko -->
+                                <!-- ko ifnot: isEnabled --><span class="badge bg-warning text-dark">Pasif</span><!-- /ko -->
+                            </div>
+                        </div>
+                        <!-- ko ifnot: useGraphApi -->
+                        <p class="mb-1 small"><strong>Sunucu:</strong> <code data-bind="text: host + ':' + port"></code></p>
                         <!-- /ko -->
+                        <!-- ko if: useGraphApi -->
+                        <p class="mb-1 small"><strong>Tenant:</strong> <code data-bind="text: tenantId"></code></p>
+                        <!-- /ko -->
+                        <p class="mb-1 small"><strong>Gonderen:</strong> <span data-bind="text: fromEmail"></span></p>
+                        <p class="mb-1 small"><strong>Kullanici:</strong> <span data-bind="text: username"></span></p>
+                        <div class="mt-2">
+                            <span class="badge small" data-bind="text: $parent.formatLastTest($data), css: $parent.testBadgeClass($data)"></span>
+                            <!-- ko if: lastTestError -->
+                            <div class="text-danger small mt-1" style="word-break: break-word;" data-bind="text: lastTestError"></div>
+                            <!-- /ko -->
+                        </div>
                     </div>
-                    <p class="mb-1 small"><strong>Sunucu:</strong> <code data-bind="text: host + ':' + port"></code>
-                        <!-- ko if: useSsl --> <span class="badge bg-info">SSL</span><!-- /ko -->
-                    </p>
-                    <p class="mb-1 small"><strong>Gonderen:</strong> <span data-bind="text: fromEmail"></span></p>
-                    <p class="mb-0 small"><strong>Kullanici:</strong> <span data-bind="text: username"></span></p>
-                </div>
-                <div class="card-footer bg-transparent d-flex gap-2 justify-content-end">
-                    <!-- ko ifnot: isDefault -->
-                    <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.setSmtpDefault">
-                        <i class="bi bi-check-circle me-1"></i>Varsayilan Yap
-                    </button>
-                    <!-- /ko -->
-                    <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteSmtpAccount">
-                        <i class="bi bi-trash me-1"></i>Sil
-                    </button>
+                    <div class="card-footer bg-transparent d-flex flex-wrap gap-1 justify-content-end">
+                        <button class="btn btn-sm btn-outline-info" data-bind="click: $parent.testSmtpAccount, disable: $parent.testingAccountId() === id">
+                            <!-- ko if: $parent.testingAccountId() === id --><span class="spinner-border spinner-border-sm"></span><!-- /ko -->
+                            <!-- ko ifnot: $parent.testingAccountId() === id --><i class="bi bi-plug"></i> Test<!-- /ko -->
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" data-bind="click: $parent.openSendTestModal">
+                            <i class="bi bi-send"></i> Test Mail
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" data-bind="click: $parent.openSmtpEditModal">
+                            <i class="bi bi-pencil"></i> Duzenle
+                        </button>
+                        <button class="btn btn-sm" data-bind="click: $parent.toggleSmtpEnabled, css: { 'btn-outline-secondary': isEnabled, 'btn-outline-success': !isEnabled }">
+                            <!-- ko if: isEnabled --><i class="bi bi-pause"></i> Pasifle<!-- /ko -->
+                            <!-- ko ifnot: isEnabled --><i class="bi bi-play"></i> Aktifle<!-- /ko -->
+                        </button>
+                        <!-- ko ifnot: isDefault -->
+                        <button class="btn btn-sm btn-outline-success" data-bind="click: $parent.setSmtpDefault">
+                            <i class="bi bi-check-circle"></i> Varsayilan Yap
+                        </button>
+                        <!-- /ko -->
+                        <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.deleteSmtpAccount">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div data-bind="visible: !isLoading() && smtpAccounts().length === 0" class="text-center py-3 text-muted">
-        <i class="bi bi-envelope display-4"></i>
-        <p class="mt-2">Henuz SMTP hesabi yok.</p>
+        <div data-bind="visible: !isLoading() && smtpAccounts().length === 0" class="empty-state mt-3">
+            <i class="bi bi-envelope"></i>
+            <div class="title mt-2">Henuz SMTP hesabi yok</div>
+            <p class="mb-0">Sertifikalari e-posta ile gonderebilmek icin bir SMTP hesabi ekleyin.</p>
+        </div>
     </div>
-    </div>
-    <!-- /SMTP tab -->
 
     <!-- User Modal -->
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalTitle">
@@ -267,17 +320,58 @@
         </div>
     </div>
 
-    <!-- OneDrive Create Modal -->
+    <!-- OneDrive Create/Edit/Reconnect Modal -->
     <div class="modal fade" id="formModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-cloud me-2"></i>OneDrive Hesabi Ekle</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-cloud me-2"></i>
+                        <span data-bind="text: isEditingOd() ? 'OneDrive Hesabi Duzenle' : (odReconnectId() > 0 ? 'OneDrive Yeniden Baglan' : 'OneDrive Hesabi Ekle')"></span>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Tab Buttons -->
-                    <ul class="nav nav-pills mb-3">
+                    <!-- EDIT MODE: sadece name + driveId + basePath + isDefault + isEnabled -->
+                    <!-- ko if: $root.isEditingOd -->
+                    <form data-bind="submit: saveAccount">
+                        <div class="mb-3">
+                            <label class="form-label">Hesap Adi <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" data-bind="textInput: formName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Drive ID</label>
+                            <input type="text" class="form-control" data-bind="textInput: formDriveId">
+                            <div class="form-text">OAuth ile bagli hesaplarda drive'i degistirmek icin "Yeniden Baglan" kullanin.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kok Klasor (BasePath)</label>
+                            <input type="text" class="form-control" data-bind="textInput: formBasePath" placeholder="Sertifikalar">
+                            <div class="form-text">
+                                Sertifikalar buraya yuklenecek. Klasor yoksa otomatik olusturulur.
+                                Son yapi: <code data-bind="text: (formBasePath() || 'Sertifikalar') + '/{Firma}/{Yil}/{Egitim}'"></code>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-3 mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="od-default-edit" data-bind="checked: formIsDefault">
+                                <label class="form-check-label" for="od-default-edit">Varsayilan</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="od-enabled-edit" data-bind="checked: formIsEnabled">
+                                <label class="form-check-label" for="od-enabled-edit">Aktif</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            Guncelle
+                        </button>
+                    </form>
+                    <!-- /ko -->
+
+                    <!-- CREATE / RECONNECT MODE -->
+                    <!-- ko ifnot: $root.isEditingOd -->
+                    <ul class="nav nav-pills mb-3" data-bind="visible: odReconnectId() === 0">
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-bind="css: { active: odTab() === 'easy' }, click: function() { odTab('easy'); }">
                                 <i class="bi bi-lightning me-1"></i>Kolay Baglanti
@@ -291,15 +385,15 @@
                     </ul>
 
                     <!-- Kolay Baglanti Tab -->
-                    <div data-bind="visible: odTab() === 'easy'">
+                    <div data-bind="visible: odTab() === 'easy' || odReconnectId() > 0">
                         <!-- Baglanti Oncesi -->
                         <div data-bind="visible: !odConnected()">
                             <div class="alert alert-info small">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Microsoft hesabinizla giris yaparak OneDrive'inizi kolayca baglayabilirsiniz.
+                                Microsoft hesabinizla giris yaparak OneDrive'i baglayin.
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Tenant ID <small class="text-muted">(opsiyonel - bos birakirsaniz "common" kullanilir)</small></label>
+                            <div class="mb-3" data-bind="visible: odReconnectId() === 0">
+                                <label class="form-label">Tenant ID <small class="text-muted">(opsiyonel)</small></label>
                                 <input type="text" class="form-control" data-bind="textInput: formTenantId" placeholder="common">
                             </div>
                             <button class="btn btn-primary w-100" data-bind="click: startOAuth, disable: odAuthLoading">
@@ -313,55 +407,71 @@
                         <div data-bind="visible: odConnected">
                             <div class="alert alert-success small">
                                 <i class="bi bi-check-circle me-1"></i>
-                                Microsoft hesabi basariyla baglandi!
-                                <a href="#" class="float-end" data-bind="click: reconnect">Yeniden Baglan</a>
+                                Microsoft hesabi baglandi.
+                                <a href="#" class="float-end" data-bind="click: reconnect">Baglantiyi Resetle</a>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Hesap Adi</label>
+                            <div class="mb-3" data-bind="visible: odReconnectId() === 0">
+                                <label class="form-label">Hesap Adi <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" data-bind="textInput: formName" placeholder="Sirket OneDrive" required>
                             </div>
                             <div class="mb-3" data-bind="visible: odDrives().length > 0">
                                 <label class="form-label">Drive Secin</label>
                                 <select class="form-select" data-bind="options: odDrives, optionsText: function(d) { return d.name + ' (' + d.driveType + ')' + (d.ownerName ? ' - ' + d.ownerName : ''); }, optionsValue: 'driveId', value: odSelectedDrive"></select>
                             </div>
-                            <div class="form-check mb-3">
+                            <div class="mb-3" data-bind="visible: odReconnectId() === 0">
+                                <label class="form-label">Kok Klasor</label>
+                                <input type="text" class="form-control" data-bind="textInput: formBasePath" placeholder="Sertifikalar">
+                                <div class="form-text">Yuklemeler buraya gider. Yoksa otomatik olusur. Alt yapi: <code>{BasePath}/{Firma}/{Yil}/{Egitim}</code></div>
+                            </div>
+                            <div class="form-check mb-3" data-bind="visible: odReconnectId() === 0">
                                 <input type="checkbox" class="form-check-input" id="od-default-easy" data-bind="checked: formIsDefault">
                                 <label class="form-check-label" for="od-default-easy">Varsayilan hesap</label>
                             </div>
                             <button class="btn btn-success w-100" data-bind="click: saveOAuthAccount, disable: isSaving">
                                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                                 <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>
-                                Kaydet
+                                <span data-bind="text: odReconnectId() > 0 ? 'Yeniden Bagla' : 'Kaydet'"></span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Gelismis Tab -->
-                    <div data-bind="visible: odTab() === 'advanced'">
+                    <div data-bind="visible: odTab() === 'advanced' && odReconnectId() === 0">
                         <form data-bind="submit: saveAccount">
                             <div class="mb-3">
-                                <label class="form-label">Hesap Adi</label>
+                                <label class="form-label">Hesap Adi <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" data-bind="textInput: formName" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Tenant ID</label>
+                                <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" data-bind="textInput: formTenantId" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Client ID</label>
+                                <label class="form-label">Client ID <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" data-bind="textInput: formClientId" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Client Secret</label>
+                                <label class="form-label">Client Secret <span class="text-danger">*</span></label>
                                 <input type="password" class="form-control" data-bind="textInput: formClientSecret" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Drive User ID</label>
+                                <label class="form-label">Drive User ID <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" data-bind="textInput: formDriveUserId" required>
                             </div>
-                            <div class="form-check mb-3">
-                                <input type="checkbox" class="form-check-input" id="od-default-adv" data-bind="checked: formIsDefault">
-                                <label class="form-check-label" for="od-default-adv">Varsayilan hesap</label>
+                            <div class="mb-3">
+                                <label class="form-label">Kok Klasor</label>
+                                <input type="text" class="form-control" data-bind="textInput: formBasePath" placeholder="Sertifikalar">
+                                <div class="form-text">Yoksa otomatik olusur. Alt yapi: <code>{BasePath}/{Firma}/{Yil}/{Egitim}</code></div>
+                            </div>
+                            <div class="d-flex gap-3 mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="od-default-adv" data-bind="checked: formIsDefault">
+                                    <label class="form-check-label" for="od-default-adv">Varsayilan</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="od-enabled-adv" data-bind="checked: formIsEnabled">
+                                    <label class="form-check-label" for="od-enabled-adv">Aktif</label>
+                                </div>
                             </div>
                             <button type="submit" class="btn btn-primary w-100" data-bind="disable: isSaving">
                                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
@@ -369,69 +479,187 @@
                             </button>
                         </form>
                     </div>
+                    <!-- /ko -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SMTP Create Modal -->
+    <!-- SMTP Create/Edit Modal -->
     <div class="modal fade" id="smtpModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Yeni SMTP Hesabi</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-envelope me-2"></i>
+                        <span data-bind="text: isEditingSmtp() ? 'SMTP Hesabi Duzenle' : 'Yeni SMTP Hesabi'"></span>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form data-bind="submit: saveSmtpAccount">
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Hesap Adi</label>
-                            <input type="text" class="form-control" data-bind="textInput: smtpName" required>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label class="form-label">SMTP Sunucu</label>
-                                <input type="text" class="form-control" data-bind="textInput: smtpHost" placeholder="smtp.gmail.com" required>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Hesap Adi <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpName" required>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Port</label>
-                                <input type="number" class="form-control" data-bind="value: smtpPort" required>
+
+                            <!-- Auth mode selector -->
+                            <div class="col-12">
+                                <label class="form-label">Kimlik Dogrulama Yontemi</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="authmode" id="am-basic" value="basic" data-bind="checked: smtpAuthMode">
+                                    <label class="btn btn-outline-secondary" for="am-basic">
+                                        <i class="bi bi-key me-1"></i>Basic Auth
+                                    </label>
+                                    <input type="radio" class="btn-check" name="authmode" id="am-oauth" value="oauth" data-bind="checked: smtpAuthMode">
+                                    <label class="btn btn-outline-primary" for="am-oauth">
+                                        <i class="bi bi-shield-lock me-1"></i>SMTP OAuth 2.0
+                                    </label>
+                                    <input type="radio" class="btn-check" name="authmode" id="am-graph" value="graph" data-bind="checked: smtpAuthMode">
+                                    <label class="btn btn-outline-info" for="am-graph">
+                                        <i class="bi bi-microsoft me-1"></i>Microsoft Graph API
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    <span data-bind="visible: smtpAuthMode() === 'basic'">Kullanici adi + sifre. Gmail icin uygulama sifresi, M365 icin ise Legacy Auth kapali olabilir — bu durumda OAuth secin.</span>
+                                    <span data-bind="visible: smtpAuthMode() === 'oauth'">SMTP protokolu uzerinden Azure AD client credentials ile XOAUTH2. M365 hesaplari icin onerilir.</span>
+                                    <span data-bind="visible: smtpAuthMode() === 'graph'">SMTP kullanilmaz; mesaj dogrudan Microsoft Graph <code>/sendMail</code> uzerinden yollanir. En yeni ve onerilen mod.</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Kullanici Adi</label>
-                            <input type="text" class="form-control" data-bind="textInput: smtpUsername" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Sifre</label>
-                            <input type="password" class="form-control" data-bind="textInput: smtpPassword" required>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label class="form-label">Gonderen E-posta</label>
+
+                            <!-- SMTP connection (hidden for Graph) -->
+                            <div class="col-md-8" data-bind="visible: !smtpIsGraphMode()">
+                                <label class="form-label">SMTP Sunucu <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpHost, attr: { required: !smtpIsGraphMode() }" placeholder="smtp.gmail.com / smtp.office365.com">
+                            </div>
+                            <div class="col-md-4" data-bind="visible: !smtpIsGraphMode()">
+                                <label class="form-label">Port <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" data-bind="value: smtpPort">
+                            </div>
+
+                            <!-- Username (for basic + oauth, but NOT graph) -->
+                            <div class="col-12" data-bind="visible: !smtpIsGraphMode()">
+                                <label class="form-label">
+                                    <span data-bind="text: smtpAuthMode() === 'oauth' ? 'SMTP Kullanici (gonderen mailbox)' : 'Kullanici Adi'"></span>
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpUsername, attr: { required: !smtpIsGraphMode() }">
+                            </div>
+
+                            <!-- Basic password -->
+                            <div class="col-12" data-bind="visible: smtpAuthMode() === 'basic'">
+                                <label class="form-label">
+                                    Sifre
+                                    <span data-bind="visible: !isEditingSmtp()" class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" data-bind="textInput: smtpPassword">
+                                <div class="form-text" data-bind="visible: isEditingSmtp() && smtpPasswordHelp(), text: smtpPasswordHelp"></div>
+                            </div>
+
+                            <!-- OAuth/Graph credentials -->
+                            <!-- ko if: smtpIsOAuthMode -->
+                            <div class="col-12">
+                                <div class="alert alert-info small mb-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Azure AD'de uygulama kaydi + API permission gerekli.
+                                    <span data-bind="visible: smtpIsGraphMode()"><code>Mail.Send</code> (application)</span>
+                                    <span data-bind="visible: !smtpIsGraphMode()"><code>SMTP.SendAsApp</code> (application) + "SMTP AUTH" mailbox ayari acik</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" data-bind="textInput: smtpClientId">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">
+                                    Client Secret
+                                    <span data-bind="visible: !isEditingSmtp()" class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" data-bind="textInput: smtpClientSecret">
+                                <div class="form-text" data-bind="visible: isEditingSmtp() && smtpClientSecretHelp(), text: smtpClientSecretHelp"></div>
+                            </div>
+                            <!-- /ko -->
+
+                            <!-- From address -->
+                            <div class="col-md-8">
+                                <label class="form-label">Gonderen E-posta <span class="text-danger">*</span></label>
                                 <input type="email" class="form-control" data-bind="textInput: smtpFromEmail" required>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Gonderen Adi</label>
                                 <input type="text" class="form-control" data-bind="textInput: smtpFromName">
                             </div>
+
+                            <div class="col-12">
+                                <div class="d-flex gap-4 flex-wrap">
+                                    <div class="form-check" data-bind="visible: !smtpIsGraphMode()">
+                                        <input type="checkbox" class="form-check-input" id="smtp-ssl" data-bind="checked: smtpUseSsl">
+                                        <label class="form-check-label" for="smtp-ssl">SSL/TLS</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="smtp-default" data-bind="checked: smtpIsDefault">
+                                        <label class="form-check-label" for="smtp-default">Varsayilan</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="smtp-enabled" data-bind="checked: smtpIsEnabled">
+                                        <label class="form-check-label" for="smtp-enabled">Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="d-flex gap-3">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="smtp-ssl" data-bind="checked: smtpUseSsl">
-                                <label class="form-check-label" for="smtp-ssl">SSL/TLS</label>
+
+                        <!-- Provider quick-setup hints -->
+                        <details class="mt-3">
+                            <summary class="text-primary" style="cursor:pointer;"><i class="bi bi-question-circle me-1"></i>Saglayici kurulum rehberleri</summary>
+                            <div class="mt-2 small">
+                                <p class="mb-2"><strong>Gmail (Basic):</strong> Host <code>smtp.gmail.com</code>, Port <code>587</code>, SSL/TLS. Sifre icin <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a> kullanin.</p>
+                                <p class="mb-2"><strong>Microsoft 365 (OAuth):</strong> Host <code>smtp.office365.com</code>, Port <code>587</code>. Azure Portal > App registration > API permissions > <code>Office 365 Exchange Online / SMTP.SendAsApp</code>. Exchange Admin'de mailbox uzerinde SMTP AUTH aktif olmali.</p>
+                                <p class="mb-2"><strong>Microsoft 365 (Graph API):</strong> Host/Port/Username kullanilmaz — sadece Tenant/Client/Secret. Azure Portal > App registration > API permissions > <code>Microsoft Graph / Mail.Send</code> (application).</p>
+                                <p class="mb-0"><strong>Yandex:</strong> Host <code>smtp.yandex.com.tr</code>, Port <code>465</code> (SSL) veya <code>587</code>.</p>
                             </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="smtp-default" data-bind="checked: smtpIsDefault">
-                                <label class="form-check-label" for="smtp-default">Varsayilan</label>
-                            </div>
+                        </details>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
+                        <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
+                            <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span data-bind="text: isEditingSmtp() ? 'Guncelle' : 'Kaydet'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Test Email Modal -->
+    <div class="modal fade" id="sendTestModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-send me-2"></i>Test Maili Gonder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form data-bind="submit: sendTest">
+                    <div class="modal-body">
+                        <p class="text-muted small">
+                            <strong data-bind="text: sendTestAccountName"></strong> hesabindan deneme maili gonderilecek.
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label" for="send-test-email">Hedef E-posta <span class="text-danger">*</span></label>
+                            <input type="email" id="send-test-email" class="form-control" data-bind="textInput: sendTestEmail" required>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Iptal</button>
                         <button type="submit" class="btn btn-primary" data-bind="disable: isSaving">
                             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                            Kaydet
+                            <i class="bi bi-send me-1" data-bind="visible: !isSaving()"></i>
+                            Gonder
                         </button>
                     </div>
                 </form>

@@ -13,7 +13,8 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNameCaseInsensitive = true
     };
 
     private readonly ITrainingEntityService _trainingService;
@@ -229,24 +230,32 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
         var fields = JsonSerializer.Deserialize<List<TemplateField>>(layoutJson, JsonOptions) ?? new();
         return fields
             .OrderBy(f => f.DisplayOrder)
-            .Select(f => new PdfFieldLayout
+            .Select(f =>
             {
-                Type = f.FieldType == "dynamic" ? "dynamic" : (f.DynamicKey == "QrCode" ? "qrcode" : (f.FieldType == "qrcode" ? "qrcode" : "static")),
-                Key = f.DynamicKey,
-                Text = f.StaticText,
-                X = f.X,
-                Y = f.Y,
-                Width = f.Width,
-                Height = f.Height,
-                FontFamily = f.FontFamily,
-                FontSize = f.FontSize,
-                FontColor = f.FontColor,
-                IsBold = f.IsBold,
-                IsItalic = f.IsItalic,
-                IsUnderline = f.IsUnderline,
-                LetterSpacing = f.LetterSpacing,
-                LineHeight = f.LineHeight,
-                Alignment = f.TextAlign
+                var ft = (f.FieldType ?? string.Empty).Trim().ToLowerInvariant();
+                var dk = f.DynamicKey?.Trim();
+                var resolvedType = ft == "dynamic" ? "dynamic"
+                    : (string.Equals(dk, "QrCode", StringComparison.OrdinalIgnoreCase) || ft == "qrcode" ? "qrcode"
+                    : "static");
+                return new PdfFieldLayout
+                {
+                    Type = resolvedType,
+                    Key = dk,
+                    Text = f.StaticText,
+                    X = f.X,
+                    Y = f.Y,
+                    Width = f.Width,
+                    Height = f.Height,
+                    FontFamily = f.FontFamily,
+                    FontSize = f.FontSize,
+                    FontColor = f.FontColor,
+                    IsBold = f.IsBold,
+                    IsItalic = f.IsItalic,
+                    IsUnderline = f.IsUnderline,
+                    LetterSpacing = f.LetterSpacing,
+                    LineHeight = f.LineHeight,
+                    Alignment = f.TextAlign
+                };
             }).ToList();
     }
 
@@ -309,9 +318,15 @@ public class CertificateGenerationFactory : ICertificateGenerationFactory
 
     private Dictionary<string, string> BuildDynamicValues(Training training, Participant participant, string certNumber)
     {
+        var first = (participant.FirstName ?? string.Empty).Trim();
+        var last = (participant.LastName ?? string.Empty).Trim();
+        var holderName = string.Join(" ", new[] { first, last }.Where(s => !string.IsNullOrEmpty(s)));
+        if (string.IsNullOrWhiteSpace(holderName))
+            throw new InvalidOperationException($"Katilimci #{participant.Id} icin ad ve soyad bos olamaz.");
+
         return new Dictionary<string, string>
         {
-            ["HolderName"] = $"{participant.FirstName} {participant.LastName}",
+            ["HolderName"] = holderName,
             ["TrainingName"] = training.Name,
             ["ProgramName"] = training.DisplayName ?? training.Name,
             ["TrainingDate"] = training.FormatDateRange(),

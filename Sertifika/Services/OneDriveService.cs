@@ -10,12 +10,18 @@ public class OneDriveService : IOneDriveService
     private readonly IOneDriveAccountEntityService _accountService;
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _config;
+    private readonly EncryptionService _crypto;
 
-    public OneDriveService(IOneDriveAccountEntityService accountService, IWebHostEnvironment env, IConfiguration config)
+    public OneDriveService(
+        IOneDriveAccountEntityService accountService,
+        IWebHostEnvironment env,
+        IConfiguration config,
+        EncryptionService crypto)
     {
         _accountService = accountService;
         _env = env;
         _config = config;
+        _crypto = crypto;
     }
 
     private async Task<OneDriveUploadResult> ArchiveTrainingCertificatesAsync(
@@ -30,7 +36,10 @@ public class OneDriveService : IOneDriveService
 
         var year = trainingDate.Year.ToString();
         var safeName = (string name) => name.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
-        var folderPath = $"Sertifikalar/{safeName(companyName)}/{year}/{safeName(trainingName)}";
+        var basePath = string.IsNullOrWhiteSpace(account.BasePath) ? "Sertifikalar" : account.BasePath.Trim().Trim('/');
+        var folderPath = $"{basePath}/{safeName(companyName)}/{year}/{safeName(trainingName)}";
+
+        await EnsureFolderChainAsync(graphClient, driveId, folderPath);
 
         var certDir = Path.Combine(
             _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
@@ -158,39 +167,116 @@ public class OneDriveService : IOneDriveService
         var account = await _accountService.GetDefaultAccountAsync();
         if (account == null)
             return (false, "Varsayilan OneDrive hesabi bulunamadi");
+        var r = await TestAccountInternalAsync(account);
+        return (r.Success, r.Error);
+    }
 
+    public async Task<OneDriveTestResult> TestAccountAsync(int accountId)
+    {
+        var account = await _accountService.GetByIdAsync(accountId);
+        if (account == null || !account.IsActive)
+            return new OneDriveTestResult { Success = false, Error = "Hesap bulunamadi" };
+        return await TestAccountInternalAsync(account);
+    }
+
+    public async Task EnsureFolderAsync(int accountId, string folderPath)
+    {
+        var account = await _accountService.GetByIdAsync(accountId)
+            ?? throw new InvalidOperationException("Hesap bulunamadi");
+        var graphClient = CreateGraphClient(account);
+        var driveId = GetDriveId(account);
+        await EnsureFolderChainAsync(graphClient, driveId, folderPath);
+    }
+
+    private async Task<OneDriveTestResult> TestAccountInternalAsync(Entities.OneDriveAccount account)
+    {
         try
         {
             var graphClient = CreateGraphClient(account);
             var driveId = GetDriveId(account);
-            var drive = await graphClient.Drives[driveId].GetAsync();
-            return (drive != null, null);
+            var drive = await graphClient.Drives[driveId].GetAsync(r =>
+                r.QueryParameters.Select = new[] { "id", "driveType", "owner", "quota" });
+
+            if (drive == null)
+                return new OneDriveTestResult { Success = false, Error = "Drive bilgisi alinamadi" };
+
+            // BasePath varsa mevcut olmasini garanti et (yoksa olustur).
+            if (!string.IsNullOrWhiteSpace(account.BasePath))
+                await EnsureFolderChainAsync(graphClient, driveId, account.BasePath.Trim().Trim('/'));
+
+            return new OneDriveTestResult
+            {
+                Success = true,
+                QuotaTotalBytes = drive.Quota?.Total,
+                QuotaUsedBytes = drive.Quota?.Used,
+                DriveType = drive.DriveType,
+                OwnerName = drive.Owner?.User?.DisplayName
+            };
         }
         catch (Exception ex)
         {
-            return (false, $"OneDrive baglanti hatasi: {ex.Message}");
+            return new OneDriveTestResult { Success = false, Error = ex.InnerException?.Message ?? ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Path uzerindeki her segmenti sirasiyla kontrol eder, yoksa olusturur.
+    /// folderPath: "Sertifikalar/ACME/2026" gibi basta / yok.
+    /// </summary>
+    private async Task EnsureFolderChainAsync(GraphServiceClient client, string driveId, string folderPath)
+    {
+        var segments = folderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0) return;
+
+        var parentPath = "";
+        foreach (var segment in segments)
+        {
+            var currentPath = string.IsNullOrEmpty(parentPath) ? segment : $"{parentPath}/{segment}";
+            try
+            {
+                await client.Drives[driveId].Root.ItemWithPath(currentPath).GetAsync();
+            }
+            catch
+            {
+                // Yoksa parent'ta children endpoint'ine POST ile olustur.
+                var newItem = new DriveItem
+                {
+                    Name = segment,
+                    Folder = new Folder(),
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        ["@microsoft.graph.conflictBehavior"] = "rename"
+                    }
+                };
+                if (string.IsNullOrEmpty(parentPath))
+                    await client.Drives[driveId].Items["root"].Children.PostAsync(newItem);
+                else
+                    await client.Drives[driveId].Root.ItemWithPath(parentPath).Children.PostAsync(newItem);
+            }
+            parentPath = currentPath;
         }
     }
 
     private GraphServiceClient CreateGraphClient(Entities.OneDriveAccount account)
     {
-        if (!string.IsNullOrEmpty(account.RefreshToken))
+        var refreshToken = _crypto.Decrypt(account.RefreshToken);
+        var clientSecret = _crypto.Decrypt(account.ClientSecret);
+
+        if (!string.IsNullOrEmpty(refreshToken))
         {
-            // OAuth flow: ClientId/Secret appsettings'ten, RefreshToken DB'den
             var clientId = !string.IsNullOrEmpty(account.ClientId)
                 ? account.ClientId
                 : _config["OneDrive:ClientId"] ?? "";
-            var clientSecret = !string.IsNullOrEmpty(account.ClientSecret)
-                ? account.ClientSecret
+            var secret = !string.IsNullOrEmpty(clientSecret)
+                ? clientSecret
                 : _config["OneDrive:ClientSecret"] ?? "";
 
             var tokenCredential = new OneDriveRefreshTokenCredential(
-                clientId, clientSecret, account.RefreshToken, account.TenantId);
+                clientId, secret, refreshToken, account.TenantId);
             return new GraphServiceClient(tokenCredential);
         }
 
-        // Eski yontem: Application auth (ClientSecretCredential)
-        var credential = new ClientSecretCredential(account.TenantId, account.ClientId, account.ClientSecret);
+        var credential = new ClientSecretCredential(account.TenantId, account.ClientId, clientSecret);
         return new GraphServiceClient(credential);
     }
 
@@ -198,7 +284,6 @@ public class OneDriveService : IOneDriveService
     {
         if (!string.IsNullOrEmpty(account.DriveId))
             return account.DriveId;
-
         throw new InvalidOperationException("OneDrive DriveId yapilandirilmamis. Hesabi yeniden baglayip drive secin.");
     }
 }

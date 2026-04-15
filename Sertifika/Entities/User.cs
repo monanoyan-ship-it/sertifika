@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Sertifika.Entities;
 
 public class User : BaseEntity
@@ -9,6 +11,7 @@ public class User : BaseEntity
     public UserRole Role { get; set; } = UserRole.Viewer;
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UserRole
 {
     Admin = 0,

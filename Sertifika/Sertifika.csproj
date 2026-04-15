@@ -21,6 +21,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Graph" Version="5.103.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.78.0" />
+    <PackageReference Include="MailKit" Version="4.11.0" />
+    <PackageReference Include="MimeKit" Version="4.16.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-preview.1" />
     <PackageReference Include="Azure.Identity" Version="1.18.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />

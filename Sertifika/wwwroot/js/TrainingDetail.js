@@ -127,10 +127,16 @@ function TrainingDetailViewModel() {
     };
 
     self.saveParticipant = function() {
+        var first = (self.participantFirstName() || '').trim();
+        var last = (self.participantLastName() || '').trim();
+        if (!first || !last) {
+            toastr.warning('Ad ve soyad zorunludur');
+            return;
+        }
         self.isSaving(true);
         var data = {
-            firstName: self.participantFirstName(),
-            lastName: self.participantLastName(),
+            firstName: first,
+            lastName: last,
             email: self.participantEmail() || null,
             companyName: self.participantCompanyName() || null
         };
