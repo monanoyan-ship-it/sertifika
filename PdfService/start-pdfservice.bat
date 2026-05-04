@@ -2,11 +2,14 @@
 title Sertifika PDF Servisi
 cd /d %~dp0
 
-rem Zaten calisiyor mu? 5050 portu LISTENING ise sessizce cik.
-netstat -ano | findstr /R /C:"TCP.*127\.0\.0\.1:5050.*LISTENING" >nul
-if %errorlevel%==0 (
-    echo PDF Servisi zaten calisiyor (http://127.0.0.1:5050). Yeni instance baslatilmadi.
-    timeout /t 2 >nul
+rem Port 5050 zaten LISTENING ise sessizce cikma yerine bilgilendir ve bekle.
+for /f "tokens=*" %%A in ('netstat -an ^| findstr /C:"127.0.0.1:5050" ^| findstr /C:"LISTENING"') do (
+    echo.
+    echo PDF Servisi zaten calisiyor -^> http://127.0.0.1:5050
+    echo Baska bir pencerede veya arka planda aktif. Yeni instance baslatilmadi.
+    echo.
+    echo Kapatmak icin bir tusa basin...
+    pause >nul
     exit /b 0
 )
 
@@ -27,12 +30,10 @@ if not exist venv (
     )
 )
 
-echo PDF Servisi baslatiliyor (http://127.0.0.1:5050)...
+echo PDF Servisi baslatiliyor -^> http://127.0.0.1:5050
 echo Durdurmak icin CTRL+C veya pencereyi kapatin.
 echo.
 venv\Scripts\python.exe main.py
-if errorlevel 1 (
-    echo.
-    echo [HATA] PDF servisi basarisiz oldu. Hata mesaji yukarida.
-    pause
-)
+echo.
+echo Servis durdu (cikis kodu %errorlevel%).
+pause

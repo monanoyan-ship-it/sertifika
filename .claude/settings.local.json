@@ -19,7 +19,23 @@
       "Bash(start-pdfservice.bat:*)",
       "Bash(PGPASSWORD='1123Azs+-' psql:*)",
       "Bash(PGPASSWORD='1123Azs+-' \"/c/Program Files/PostgreSQL/17/bin/psql.exe\":*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(xargs grep:*)",
+      "Bash(xargs cat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "WebSearch",
+      "Bash(venv/Scripts/python.exe -m pip install --upgrade pip -q)",
+      "Bash(venv/Scripts/python.exe -m pip install -r requirements.txt -q)",
+      "WebFetch(domain:89.252.179.77)",
+      "Bash(git commit -m ' *)",
+      "Bash(grep -rn \"orientation === 0\\\\|status === [0-9]\\\\|Status: [0-9]\\\\|Orientation: [0-9]\\\\|status: *[0-9]\\\\|\\\\\\\\[0\\\\\\\\]:\\\\|0: '\" \"C:/Users/Ahmet/source/repos/monanoyan-ship-it/Sertifika/Sertifika/wwwroot/js/\")",
+      "Bash(./venv/Scripts/python.exe main.py)",
+      "Bash(netstat -ano)",
+      "Bash(findstr /C:\"127.0.0.1:5050\")",
+      "Bash(findstr LISTENING)",
+      "Bash(findstr \"5050\")",
+      "Bash(findstr \"5000 5001 7000 7001 5211\")"
     ]
   }
 }

@@ -12,7 +12,7 @@ using Sertifika.Context;
 namespace Sertifika.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260415200735_AddOneDriveBasePathAndQuota")]
+    [Migration("20260415203448_AddOneDriveBasePathAndQuota")]
     partial class AddOneDriveBasePathAndQuota
     {
         /// <inheritdoc />
@@ -370,6 +370,10 @@ namespace Sertifika.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BasePath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("ClientId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -410,6 +414,15 @@ namespace Sertifika.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("QuotaCheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("QuotaTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("QuotaUsedBytes")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()
